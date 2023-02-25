@@ -1,4 +1,5 @@
 require 'himari/decisions/base'
+require 'himari/session_data'
 
 module Himari
   module Decisions
@@ -6,7 +7,11 @@ module Himari
       class UninitializedError < StandardError; end
       class AlreadyInitializedError < StandardError; end
 
-      allow_effects(:allow, :continue, :deny, :skip)
+      Context = Struct.new(:request, :auth, keyword_init: true) do
+        def provider; auth[:provider]; end
+      end
+
+      allow_effects(:continue, :skip)
 
       def initialize(claims: nil, user_data: nil)
         super()
@@ -19,6 +24,14 @@ module Himari
           claims: @claims.dup,
           user_data: @user_data.dup,
         }
+      end
+
+      def as_log
+        to_h.merge(claims: @claims)
+      end
+
+      def output
+        Himari::SessionData.new(claims: claims, user_data: user_data)
       end
 
       def initialize_claims!(claims = {})

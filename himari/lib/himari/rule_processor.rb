@@ -2,7 +2,17 @@ module Himari
   class RuleProcessor
     class MissingDecisionError < StandardError; end
 
-    Result = Struct.new(:rule_name, :allowed, :explicit_deny, :decision, :decision_log, keyword_init: true)
+    Result = Struct.new(:rule_name, :allowed, :explicit_deny, :decision, :decision_log, keyword_init: true) do
+      def as_log
+        {
+          rule_name: rule_name,
+          allowed: allowed,
+          explicit_deny: explicit_deny,
+          decision: decision&.as_log,
+          decision_log: decision_log.map(&:to_h),
+        }
+      end
+    end
 
     # @param context [Object] Context data
     # @param initial_decision [Himari::Decisions::Base] Initial decision

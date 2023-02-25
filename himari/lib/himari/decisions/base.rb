@@ -32,6 +32,10 @@ module Himari
         }
       end
 
+      def as_log
+        to_h
+      end
+
       def evolve(rule_name)
         self.class.new(**to_evolve_args).set_rule_name(rule_name)
       end
