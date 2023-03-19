@@ -27,7 +27,14 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency ""
+  spec.add_dependency "sinatra", '>= 3.0'
+  spec.add_dependency 'rack-protection'
+  spec.add_dependency "omniauth", ">= 2.0"
+
+  spec.add_dependency 'addressable'
+
+  spec.add_dependency "rack-oauth2"
+  spec.add_dependency "openid_connect"
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"

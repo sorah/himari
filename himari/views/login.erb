@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Himari Login</title>
+    <link rel="stylesheet" href="/public/index.css?v=<%= cachebuster %>" type="text/css" />
+    <meta name="viewport" content="initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+
+    <meta name="himari:release" content="TODO:">
+  </head>
+
+  <body class='himari-app himari-loading'>
+    <main>
+      <nav class='actions'>
+        <fieldset id='actions-fieldset'>
+          <% known_providers.each do |provider| %>
+            <form action="<%= provider.action %>" method="POST" class="provider-<%= provider.name %>">
+              <input type="hidden" name="<%= csrf_token_name %>" value="<%= csrf_token_value %>" />
+                <button type='submit'><%= provider.button %></button>
+            </form>
+          <% end %>
+        </fieldset>
+      </nav>
+    </main>
+
+    <script type='text/javascript'>
+      const fieldset = document.getElementById('actions-fieldset');
+      document.querySelectorAll('.actions-fieldset form').forEach((v) => {
+        v.addEventListener('submit', () => {
+          fieldset.disabled = true;
+        });
+      });
+    </script>
+  </body>
+</html>
+

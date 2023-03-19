@@ -48,7 +48,7 @@ module Himari
       # @param request [Rack::Request]
       def self.from_request(request)
         new(
-          auth: request.env['omniauth.hash'],
+          auth: request.env.fetch('omniauth.auth'),
           request: request,
           claims_rules: Himari::ProviderChain.new(request.env[Himari::Middlewares::ClaimsRule::RACK_KEY] || []).collect,
           authn_rules: Himari::ProviderChain.new(request.env[Himari::Middlewares::AuthenticationRule::RACK_KEY] || []).collect,

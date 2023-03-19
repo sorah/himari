@@ -10,7 +10,7 @@ module Himari
     def find(**hint, &block)
       @providers.each do |provider|
         provider.collect(**hint).each do |item|
-          return item if block.call(item)
+          return item if block.call(item, hint)
         end
       end
       nil

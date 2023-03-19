@@ -1,0 +1,76 @@
+body {
+  font-family: "Segoe UI", Helvetica, sans-serif;
+  font-size: 16px;
+  background-color: #FDF7EF;
+  text-align: center;
+  color: #2C2C31;
+}
+* {
+  box-sizing: border-box;
+}
+main {
+  width: 100%;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+.himari-app fieldset {
+  border: none;
+}
+
+main > header {
+  text-align: center;
+}
+main > header img{
+  max-width: 200px;
+  height: auto;
+}
+
+.actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+.actions > div  {
+  display: inline;
+}
+.actions > div form {
+  display: inline;
+}
+.actions button {
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #4E6994;
+  border-radius: 4px;
+  background: #4E6994;
+  color: #FFF;
+  padding: 18px 28px;
+}
+.actions button:disabled {
+  color: #eee;
+  background: #2a384f;
+}
+
+.spinner {
+  text-align: center;
+  font-size: 60px;
+  font-weight: 600;
+  margin-top: 30px;
+}
+
+.d-none {
+  display: none;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border-width: 0 !important;
+}
