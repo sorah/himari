@@ -31,9 +31,17 @@ module Himari
           end
 
           if requested_response_types.include?(:code)
+
             @authz.redirect_uri = res.redirect_uri
             @authz.nonce = req.nonce
+
             @authz.openid = req.scope.include?('openid')
+            if req.code_challenge && req.code_challenge_method
+              @authz.code_challenge = req.code_challenge
+              @authz.code_challenge_method = req.code_challenge_method || 'plain'
+              next req.bad_request!(:invalid_request, 'Invalid PKCE parameters') unless @authz.pkce_valid_request?
+            end
+
             @storage.put_authorization(@authz)
             res.code = @authz.code
           end

@@ -40,6 +40,10 @@ module Himari
               puts "expired"
               next req.invalid_grant! 
             end
+            if authz.pkce? && !req.verify_code_verifier!(authz.code_challenge, authz.code_challenge_method)
+              puts "invalid pkce challenge"
+              next req.invalid_grant!
+            end
             # TODO: PKCE verify_code_verifier!
 
             token = AccessToken.from_authz(authz)
