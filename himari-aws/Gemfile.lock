@@ -72,6 +72,7 @@ GEM
       net-pop
       net-smtp
     mini_mime (1.1.2)
+    mini_portile2 (2.8.1)
     minitest (5.18.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
@@ -84,6 +85,9 @@ GEM
       timeout
     net-smtp (0.3.3)
       net-protocol
+    nokogiri (1.14.2)
+      mini_portile2 (~> 2.8.0)
+      racc (~> 1.4)
     omniauth (2.1.1)
       hashie (>= 3.4.6)
       rack (>= 2.2.3)
@@ -102,6 +106,7 @@ GEM
       validate_url
       webfinger (~> 2.0)
     public_suffix (5.0.1)
+    racc (1.6.2)
     rack (2.2.6.4)
     rack-oauth2 (2.2.0)
       activesupport
@@ -158,6 +163,7 @@ PLATFORMS
 DEPENDENCIES
   himari!
   himari-aws!
+  nokogiri
   rake (~> 13.0)
   rspec (~> 3.0)
 
