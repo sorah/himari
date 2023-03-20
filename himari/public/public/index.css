@@ -32,11 +32,8 @@ main > header img{
   flex-direction: row;
   justify-content: center;
 }
-.actions > div  {
-  display: inline;
-}
-.actions > div form {
-  display: inline;
+.actions form {
+  margin-bottom: 8px;
 }
 .actions button {
   font-size: 20px;
@@ -46,7 +43,8 @@ main > header img{
   border-radius: 4px;
   background: #4E6994;
   color: #FFF;
-  padding: 18px 28px;
+  padding: 12px 28px;
+  cursor: pointer;
 }
 .actions button:disabled {
   color: #eee;
