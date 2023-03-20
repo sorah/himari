@@ -1,5 +1,6 @@
 # config.ru
 require 'himari'
+require 'himari/aws'
 require 'himari/storages/filesystem'
 require 'json'
 require 'omniauth'
@@ -23,11 +24,17 @@ use(Himari::Middlewares::Config,
   providers: [
     { name: :developer, button: 'Log in with Dev' },
   ],
-  storage: Himari::Storages::Filesystem.new(File.join(__dir__, 'tmp', 'storage')),
+  # storage: Himari::Storages::Filesystem.new(File.join(__dir__, 'tmp', 'storage')),
+  storage: Himari::Aws::DynamodbStorage.new(table_name: 'himari_dev'),
   log_level: Logger::DEBUG,
 )
 
 # Signing key
+use(Himari::Aws::SecretsmanagerSigningKeyProvider, 
+  secret_id: 'arn:aws:secretsmanager:ap-northeast-1:341857463381:secret:himari_dev-5EgiV8',
+  group: nil,
+  kid_prefix: 'sm_dev',
+ )
 if File.exist?(File.join(__dir__, 'tmp/rsa.pem'))
   use(Himari::Middlewares::SigningKey,
     id: 'rsa1',
