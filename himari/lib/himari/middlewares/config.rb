@@ -14,6 +14,9 @@ module Himari
 
       def call(env)
         env[RACK_KEY] = config
+        unless config.preserve_rack_logger
+          env['rack.logger'] = config.logger
+        end
         @app.call(env)
       end
     end

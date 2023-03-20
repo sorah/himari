@@ -10,8 +10,9 @@ RSpec.describe Himari::Services::OidcUserinfoEndpoint do
 
   let(:token) { Himari::AccessToken.make(client_id: 'clientid', claims: {sub: 'chihiro'}) }
   let(:bearer) { nil }
+  let(:logger) { Rack::NullLogger.new(nil) }
 
-  let(:app) { described_class.new(storage: storage) }
+  let(:app) { described_class.new(storage: storage, logger: logger) }
 
   before do
     storage.put_token(token)

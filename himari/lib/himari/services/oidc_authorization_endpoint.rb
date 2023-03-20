@@ -1,4 +1,5 @@
 require 'rack/oauth2'
+require 'digest/sha2'
 require 'openid_connect'
 
 module Himari
@@ -9,24 +10,30 @@ module Himari
       # @param authz [Himari::AuthorizationCode] pending (unpersisted) authz data
       # @param client [Himari::ClientRegistration]
       # @param storage [Himari::Storages::Base]
-      def initialize(authz:, client:, storage:)
+      # @param logger [Logger]
+      def initialize(authz:, client:, storage:, logger: nil)
         @authz = authz
         @client = client
         @storage = storage
+        @logger = logger
       end
 
       def call(env)
-        app.call(env)
+        app(env).call(env)
       rescue Rack::OAuth2::Server::Abstract::Error => e
+        @logger&.warn(Himari::LogLine.new('OidcAuthorizationEndpoint: returning error', req: env['himari.request_as_log'], err: e.class.inspect, err_content: e.protocol_params))
         # XXX: finish???? https://github.com/nov/rack-oauth2/blob/v2.2.0/lib/rack/oauth2/server/authorize/error.rb#L19
         # Call https://github.com/nov/rack-oauth2/blob/v2.2.0/lib/rack/oauth2/server/abstract/error.rb#L25
         Rack::OAuth2::Server::Abstract::Error.instance_method(:finish).bind(e).call
       end
 
-      def app
+      def app(env)
         Rack::OAuth2::Server::Authorize.new do |req, res|
           # sanity check
-          req.bad_request! unless @client.id == req.client_id
+          unless @client.id == req.client_id
+            @logger&.warn(Himari::LogLine.new('OidcAuthorizationEndpoint: @client.id != req.client_id', req: env['himari.request_as_log'], known_client: @client.id, given_client: req.client_id))
+            next req.bad_request!
+          end
           raise "[BUG] client.id != authz.cilent_id" unless @authz.client_id == @client.id
           res.redirect_uri = req.verify_redirect_uri!(@client.redirect_uris)
 
@@ -51,6 +58,8 @@ module Himari
 
             @storage.put_authorization(@authz)
             res.code = @authz.code
+
+            @logger&.debug(Himari::LogLine.new('OidcAuthorizationEndpoint: grant code', req: env['himari.request_as_log'], client: @client.as_log, claims: @authz.claims, code: @authz.code))
           end
 
           # if requested_response_types.include?(:token)
@@ -64,6 +73,7 @@ module Himari
           #   res.id_token = @id_token.to_jwt
           # end
 
+          @logger&.info(Himari::LogLine.new('OidcAuthorizationEndpoint: authorized', req: env['himari.request_as_log'], client: @client.as_log, claims: @authz.claims, redirect_uri: @authz.redirect_uri, code_dgst: Digest::SHA256.hexdigest(@authz.code)))
           res.approve!
         end
       end

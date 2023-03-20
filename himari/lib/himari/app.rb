@@ -1,6 +1,8 @@
 require 'sinatra/base'
 require 'addressable'
 
+require 'himari/log_line'
+
 require 'himari/provider_chain'
 require 'himari/authorization_code'
 
@@ -17,12 +19,12 @@ require 'himari/services/oidc_provider_metadata_endpoint'
 require 'himari/services/oidc_token_endpoint'
 require 'himari/services/oidc_userinfo_endpoint'
 
-
 module Himari
   class App < Sinatra::Base
     set :root, File.expand_path(File.join(__dir__, '..', '..'))
 
     set :protection, use: %i(authenticity_token), except: %i(remote_token)
+    set :logging, nil
 
     ProviderCandidate = Struct.new(:name, :button, :action, keyword_init: true)
 
@@ -66,6 +68,25 @@ module Himari
       def cachebuster
         env['himari.cachebuster'] || "#{Process.pid}"
       end
+
+      def request_id
+        env['HTTP_X_REQUEST_ID'] ||= SecureRandom.uuid
+      end
+
+      def request_as_log
+        env['himari.request_as_log'] ||= {
+          id: request_id,
+          method: request.request_method,
+          path: request.path,
+          ip: request.ip,
+          cip: env['REMOTE_ADDR'],
+          xff: env['HTTP_X_FORWARDED_FOR'],
+        }
+      end
+    end
+
+    before do
+      request_as_log()
     end
 
     get '/' do
@@ -74,11 +95,15 @@ module Himari
     end
 
     get '/oidc/authorize' do
-      client = client_provider.find(id: params[:client_id]) { |c,h| c.match_hint?(**h) }
-      next halt 401, 'unknown client' unless client
+      client = client_provider.find(id: params[:client_id])
+      unless client
+        logger&.warn(Himari::LogLine.new('authorize: no client registration found', req: request_as_log, client_id: params[:client_id]))
+        next halt 401, 'unknown client' 
+      end
       if current_user
         # do downstream authz and process oidc request
         decision = Himari::Services::DownstreamAuthorization.from_request(session: current_user, client: client, request: request).perform
+        logger&.info(Himari::LogLine.new('authorize: downstream authorized', req: request_as_log, allowed: decision.authz_result.allowed, result: decision.as_log))
         raise unless decision.authz_result.allowed # sanity check
 
         authz = AuthorizationCode.make(
@@ -90,11 +115,14 @@ module Himari
           authz: authz,
           client: client,
           storage: config.storage,
+          logger: logger,
         ).call(env)
       else
+        logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
         erb :login
       end
-    rescue Himari::Services::DownstreamAuthorization::ForbiddenError
+    rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
+      logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
       halt 403, "Forbidden"
     end
 
@@ -104,6 +132,7 @@ module Himari
         signing_key_provider: signing_key_provider,
         storage: config.storage,
         issuer: config.issuer,
+        logger: logger,
       ).call(env)
     end
     post '/oidc/token', &token_ep
@@ -112,6 +141,7 @@ module Himari
     userinfo_ep = proc do
       Himari::Services::OidcUserinfoEndpoint.new(
         storage: config.storage,
+        logger: logger,
       ).call(env)
     end
     get '/oidc/userinfo', &userinfo_ep
@@ -136,21 +166,25 @@ module Himari
     omniauth_callback = proc do
       # do upstream auth
       authn = Himari::Services::UpstreamAuthentication.from_request(request).perform
+      logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: authn.as_log))
       raise unless authn.authn_result.allowed # sanity check
 
       given_back_to = request.env['omniauth.params']&.fetch('back_to', nil)
-      p given_back_to
       back_to = if given_back_to
         uri = Addressable::URI.parse(given_back_to)
         if uri && uri.host.nil? && uri.scheme.nil? && uri.path.start_with?('/')
           given_back_to
+        else
+          logger&.warn(Himari::LogLine.new('invalid back_to', req: request_as_log, given_back_to: given_back_to))
+          nil
         end
       end || '/'
 
       session.destroy
       session[:session_data] = authn.session_data
       redirect back_to
-    rescue Himari::Services::UpstreamAuthentication::UnauthorizedError
+    rescue Himari::Services::UpstreamAuthentication::UnauthorizedError => e
+      logger&.warn(Himari::LogLine.new('authentication denied', req: request_as_log, err: e.class.inspect, allowed: e.result.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: e.as_log))
       halt(401, 'Unauthorized')
     end
     get '/auth/:provider/callback', &omniauth_callback

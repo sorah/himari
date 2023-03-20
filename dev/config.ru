@@ -24,6 +24,7 @@ use(Himari::Middlewares::Config,
     { name: :developer, button: 'Log in with Dev' },
   ],
   storage: Himari::Storages::Filesystem.new(File.join(__dir__, 'tmp', 'storage')),
+  log_level: Logger::DEBUG,
 )
 
 # Signing key
@@ -109,6 +110,7 @@ end
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-dev') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'developer'
 
+  #decision.deny!
   decision.allow!
 end
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-with-teams') do |context, decision|

@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'digest/sha2'
 require 'base64'
 require 'addressable'
+require 'rack/null_logger'
 require 'himari/services/oidc_token_endpoint'
 require 'himari/storages/memory'
 require 'himari/authorization_code'
@@ -15,7 +16,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid) }
 
   let(:client) do
-    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi').tap do |x|
+    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}).tap do |x|
       allow(x).to receive(:match_secret?).with('secret').and_return(true)
     end
   end
@@ -34,8 +35,9 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
   end
 
   let(:storage) { Himari::Storages::Memory.new }
+  let(:logger) { Rack::NullLogger.new(nil) }
 
-  let(:app) { described_class.new(client_provider: client_provider, signing_key_provider: signing_key_provider, storage: storage, issuer: 'https://test.invalid') }
+  let(:app) { described_class.new(client_provider: client_provider, signing_key_provider: signing_key_provider, storage: storage, issuer: 'https://test.invalid', logger: logger) }
 
   before do
     storage.put_authorization(authz)

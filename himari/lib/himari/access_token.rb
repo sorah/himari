@@ -97,6 +97,15 @@ module Himari
       )
     end
 
+    def as_log
+      {
+        handler_dgst: Digest::SHA256.hexdigest(handler),
+        client_id: client_id,
+        claims: claims,
+        expiry: expiry,
+      }
+    end
+
     def as_json
       {
         handler: handler,

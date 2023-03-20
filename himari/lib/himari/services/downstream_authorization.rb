@@ -37,11 +37,13 @@ module Himari
       # @param client [Himari::ClientRegistration]
       # @param request [Rack::Request]
       # @param authz_rules [Array<Himari::Rule>] Authorization Rules
-      def initialize(session:, client:, request: nil, authz_rules: [])
+      # @param logger [Logger]
+      def initialize(session:, client:, request: nil, authz_rules: [], logger: nil)
         @session = session
         @client = client
         @request = request
         @authz_rules = authz_rules
+        @logger = logger
       end
 
       # @param session [Himari::SessionData]
@@ -53,6 +55,7 @@ module Himari
           client: client,
           request: request,
           authz_rules: Himari::ProviderChain.new(request.env[Himari::Middlewares::AuthorizationRule::RACK_KEY] || []).collect,
+          logger: request.env['rack.logger'],
         )
       end
 
@@ -60,7 +63,7 @@ module Himari
         context = Himari::Decisions::Authorization::Context.new(claims: @session.claims, user_data: @session.user_data, request: @request, client: @client).freeze
 
         authorization = Himari::RuleProcessor.new(context, Himari::Decisions::Authorization.new(claims: @session.claims.dup)).run(@authz_rules)
-        raise ForbiddenError.new(authorization) unless authorization.allowed
+        raise ForbiddenError.new(Result.new(@client, nil, authorization)) unless authorization.allowed
 
         claims = authorization.decision.output
         Result.new(@client, claims, authorization)

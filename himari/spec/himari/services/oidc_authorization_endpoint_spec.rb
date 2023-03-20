@@ -2,6 +2,7 @@ require 'spec_helper'
 require 'digest/sha2'
 require 'base64'
 require 'addressable'
+require 'rack/null_logger'
 require 'himari/services/oidc_authorization_endpoint'
 require 'himari/storages/memory'
 require 'himari/authorization_code'
@@ -10,10 +11,11 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
   include Rack::Test::Methods
 
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}) }
-  let(:client) { double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb']) }
+  let(:client) { double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], as_log: {client_as_log: 1}) }
   let(:storage) { Himari::Storages::Memory.new }
+  let(:logger) { Rack::NullLogger.new(nil) }
 
-  let(:app) { described_class.new(authz: authz, client: client, storage: storage) }
+  let(:app) { described_class.new(authz: authz, client: client, storage: storage, logger: logger) }
 
   context "with invalid clientid combination" do
     it "returns 400" do

@@ -1,3 +1,5 @@
+require 'digest/sha2'
+
 module Himari
   authz_attrs = %i(
     code
@@ -44,6 +46,24 @@ module Himari
 
     def pkce_valid_request?
       pkce? && pkce_known_method? && pkce_valid_challenge?
+    end
+
+    def code_dgst_for_log
+      @code_dgst_for_log ||= code ? Digest::SHA256.hexdigest(code) : nil
+    end
+
+    def as_log
+      {
+        code_dgst: code_dgst_for_log,
+        client_id: client_id,
+        claims: claims,
+        nonce: nonce,
+        openid: openid,
+        expiry: expiry.to_i,
+        pkce: pkce?,
+        pkce_method: code_challenge_method,
+        pkce_valid_chal: pkce_valid_challenge?,
+      }
     end
 
     def as_json

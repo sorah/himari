@@ -1,11 +1,14 @@
 require 'himari/access_token'
+require 'himari/log_line'
 
 module Himari
   module Services
     class OidcUserinfoEndpoint
       # @param storage [Himari::Storages::Base]
-      def initialize(storage:)
+      # @param logger [Logger]
+      def initialize(storage:, logger: nil)
         @storage = storage
+        @logger = logger
       end
 
       def app
@@ -13,15 +16,16 @@ module Himari
       end
 
       def call(env)
-        Handler.new(storage: @storage, env: env).response
+        Handler.new(storage: @storage, env: env, logger: @logger).response
       end
 
       class Handler
         class InvalidToken < StandardError; end
 
-        def initialize(storage:, env:)
+        def initialize(storage:, env:, logger:)
           @storage = storage
           @env = env
+          @logger = logger
         end
 
         def response
@@ -36,12 +40,14 @@ module Himari
           token.verify_expiry!()
           token.verify_secret!(given_parsed_token.secret)
 
+          @logger&.info(Himari::LogLine.new('OidcUserinfoEndpoint: returning', req: @env['himari.request_as_log'], token: token.as_log))
           [
             200,
             {'Content-Type' => 'application/json; charset=utf-8'},
             [JSON.pretty_generate(token.claims), "\n"],
           ]
-        rescue InvalidToken, Himari::AccessToken::SecretIncorrect, Himari::AccessToken::InvalidFormat, Himari::AccessToken::TokenExpired
+        rescue InvalidToken, Himari::AccessToken::SecretIncorrect, Himari::AccessToken::InvalidFormat, Himari::AccessToken::TokenExpired => e
+          @logger&.warn(Himari::LogLine.new('OidcUserinfoEndpoint: invalid_token', req: @env['himari.request_as_log'], err: e.class.inspect, token: token&.as_log))
           [
             401,
             {'Content-Type' => 'application/json', 'WWW-Authenticate' => 'error="invalid_token", error_description="invalid access token"'},
