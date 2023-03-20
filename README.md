@@ -4,11 +4,11 @@ Himari is a Rack application acts as a OIDC IdP. Identities are all externally s
 
 For instance, this app should fit for a team like: a team with individual collaborators, a team with members from multiple organizations. This app should enable OIDC for such teams using existing their own identities, without forcing them to manage new credentials for small purpose.
 
-If your team can use full-suite IdP such as Azure AD, Okta or Google Workspace, then this app should be not for you.
+If your team can use full-suite IdP such as Azure AD, Okta or Google Workspace, then this app may not be for you.
 
 While this app does not aim to be a replacement, but you can consider this as a cheaper alternative against Dex (dexidp), by deploying this to AWS Lambda.
 
-## Installation
+## Setup
 
 Deploy as a Rack application:
 
@@ -16,15 +16,133 @@ Deploy as a Rack application:
 # Gemfile
 source 'https://rubygems.org'
 gem 'himari'
+gem 'himari-aws' # for AWS Secrets Manager integration and DynamoDB storage backend
+
+gem 'nokogiri' # for himari-aws
+gem 'rack-session'
 ```
+
+Write policy and configuration in config.ru. Then run as a Rack application:
 
 ```ruby
 # config.ru
+require 'himari'
+require 'json'
+require 'omniauth'
+require 'open-uri'
+require 'rack/session'
+
+use(Rack::Session::Cookie,
+  path: '/',
+  expire_after: 3600,
+  secure: true,
+  secret: ENV.fetch('SECRET_KEY_BASE'),
+)
+
+use OmniAuth::Builder do
+  provider :github
+end
+
+use(Himari::Middlewares::Config,
+  issuer: 'https://idp.example.net',
+  providers: [
+    { name: :github, button: 'Log in with GitHub' },
+  ],
+  storage: Himari::Storages::Filesystem.new('/var/lib/himari/data'),
+)
+
+# add signing key. multiple keys can be added for rotation
+use(Himari::Middlewares::SigningKey,
+  kid: 'key1',
+  pkey: OpenSSL::PKey::RSA.new(File.read('key.pem'), ''),
+)
+
+# Add clients as many as you need
+use(Himari::Middlewares::Client,
+  name: 'awsalb',
+  id: '...',
+  secret_hash: '...', # sha384 hexdigest of secret
+  # secret: '...' # or in cleartext
+  redirect_uris: %w(https://app.example.net/oauth2/idpresponse),
+)
+
+# Generate claims from omniauth authentication result
+use(Himari::Middlewares::ClaimsRule, name: 'github-initialize') do |context, decision|
+  next decision.skip!("provider not in scope") unless context.provider == 'github'
+
+  decision.initialize_claims!(
+    sub: "github_#{context.auth[:uid]}",
+    name: context.auth[:info][:nickname],
+    preferred_username: context.auth[:info][:nickname],
+    email: context.auth[:info][:email],
+  )
+  decision.user_data[:provider] = 'github'
+
+  decision.continue!
+end
+
+# Select who can be authenticated through Himari. Authn rules run during omniauth callback
+use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-known-members') do |context, decision|
+  next decision.skip!("provider not in scope") unless context.provider == 'github'
+
+  known_logins = %w(chihiro maki hare kotama himari)
+  if known_logins.include?(context.claims[:preferred_username])
+    next decision.allow!
+  end
+
+  decision.skip!
+end
+
+# Authorization policies during OIDC request process from clients. Authz rules run during oidc authorization
+use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decision|
+  clients_available_for_everyone = %w(wiki)
+
+  # You can add custom_claim per client
+  decision.claims[:custom_claim1] = 'foo'
+  decision.allowed_claims.push(:custom_claim)
+
+  if clients_available_for_everyone.include?(context.client.name)
+    next decision.allow! 
+  end
+  decision.skip!
+end
+# we can have many rules
+use(Himari::Middleware::AuthorizationRule, name: 'ban-something') do |context, decision|
+  if context.request.ip == '192.0.2.9'
+    next decision.deny!("explicit deny for some banned ip")
+  end
+
+  decision.skip!
+end
+
+# Run!
+run Himari::App
 ```
+
+## Plugins
+
+- [./himari-aws]() for AWS Lambda, DynamoDB and Secrets Manager integration
+
+## Examples
+
+- [./examples/config.details.ru](): Rule API details
+- [./examples/config.github.ru](): GitHub Team list API example
+- [./himari-aws]() for AWS Lambda, DynamoDB and Secrets Manager integration
 
 ## Usage
 
-TODO: Write usage instructions here
+Himari acts as an OIDC OpenID Provider. OIDC discovery metadata served at `/.well-known/openid-configuration`.
+
+- Authorize Endpoint: `/oidc/authorize`
+- Token Endpoint: `/public/oidc/token`
+- Userinfo Endpoint: `/public/oidc/userinfo`
+- JWK Set Endpoint: `/public/jwks`
+
+## Caveats
+
+- Consent/Authorize screen is not implemented. All authorization requests will be immediately approved on behalf of a logged in user, as long as AuthorizationRule permits.
+- Recognizes `openid` scope only.
+- Implements Authorization Code Flow (`response_type=code`) only. Public clients should use the same flow with PKCE.
 
 ## Development
 
@@ -34,7 +152,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/himari.
+Bug reports and pull requests are welcome on GitHub at https://github.com/sorah/himari.
 
 ## License
 
