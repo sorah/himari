@@ -1,13 +1,5 @@
 PATH
-  remote: himari-aws
-  specs:
-    himari-aws (0.1.0)
-      aws-sdk-dynamodb
-      aws-sdk-secretsmanager
-      himari
-
-PATH
-  remote: himari
+  remote: ../himari
   specs:
     himari (0.1.0)
       addressable
@@ -16,6 +8,14 @@ PATH
       rack-oauth2
       rack-protection
       sinatra (>= 3.0)
+
+PATH
+  remote: .
+  specs:
+    himari-aws (0.1.0)
+      aws-sdk-dynamodb
+      aws-sdk-secretsmanager
+      himari
 
 GEM
   remote: https://rubygems.org/
@@ -49,6 +49,7 @@ GEM
     bindata (2.4.15)
     concurrent-ruby (1.2.2)
     date (3.3.3)
+    diff-lcs (1.5.0)
     faraday (2.7.4)
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
@@ -65,16 +66,13 @@ GEM
       bindata
       faraday (~> 2.0)
       faraday-follow_redirects
-    jwt (2.7.0)
     mail (2.8.1)
       mini_mime (>= 0.1.1)
       net-imap
       net-pop
       net-smtp
     mini_mime (1.1.2)
-    mini_portile2 (2.8.1)
     minitest (5.18.0)
-    multi_xml (0.6.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     net-imap (0.3.4)
@@ -86,24 +84,10 @@ GEM
       timeout
     net-smtp (0.3.3)
       net-protocol
-    nio4r (2.5.8)
-    nokogiri (1.14.2)
-      mini_portile2 (~> 2.8.0)
-      racc (~> 1.4)
-    oauth2 (2.0.9)
-      faraday (>= 0.17.3, < 3.0)
-      jwt (>= 1.0, < 3.0)
-      multi_xml (~> 0.5)
-      rack (>= 1.2, < 4)
-      snaky_hash (~> 2.0)
-      version_gem (~> 1.1)
     omniauth (2.1.1)
       hashie (>= 3.4.6)
       rack (>= 2.2.3)
       rack-protection
-    omniauth-oauth2 (1.8.0)
-      oauth2 (>= 1.4, < 3)
-      omniauth (~> 2.0)
     openid_connect (2.2.0)
       activemodel
       attr_required (>= 1.0.0)
@@ -118,9 +102,6 @@ GEM
       validate_url
       webfinger (~> 2.0)
     public_suffix (5.0.1)
-    puma (6.1.1)
-      nio4r (~> 2.0)
-    racc (1.6.2)
     rack (2.2.6.4)
     rack-oauth2 (2.2.0)
       activesupport
@@ -131,20 +112,26 @@ GEM
       rack (>= 2.1.0)
     rack-protection (3.0.5)
       rack
-    rack-session (1.0.1)
-      rack (< 3)
-    rackup (1.0.0)
-      rack (< 3)
-      webrick
+    rake (13.0.6)
+    rspec (3.12.0)
+      rspec-core (~> 3.12.0)
+      rspec-expectations (~> 3.12.0)
+      rspec-mocks (~> 3.12.0)
+    rspec-core (3.12.1)
+      rspec-support (~> 3.12.0)
+    rspec-expectations (3.12.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.12.0)
+    rspec-mocks (3.12.4)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.12.0)
+    rspec-support (3.12.0)
     ruby2_keywords (0.0.5)
     sinatra (3.0.5)
       mustermann (~> 3.0)
       rack (~> 2.2, >= 2.2.4)
       rack-protection (= 3.0.5)
       tilt (~> 2.0)
-    snaky_hash (2.0.1)
-      hashie
-      version_gem (~> 1.1, >= 1.1.1)
     swd (2.0.2)
       activesupport (>= 3)
       attr_required (>= 0.0.5)
@@ -160,12 +147,10 @@ GEM
     validate_url (1.0.15)
       activemodel (>= 3.0.0)
       public_suffix
-    version_gem (1.1.2)
     webfinger (2.1.2)
       activesupport
       faraday (~> 2.0)
       faraday-follow_redirects
-    webrick (1.8.1)
 
 PLATFORMS
   ruby
@@ -173,11 +158,8 @@ PLATFORMS
 DEPENDENCIES
   himari!
   himari-aws!
-  nokogiri
-  omniauth-oauth2
-  puma
-  rack-session
-  rackup
+  rake (~> 13.0)
+  rspec (~> 3.0)
 
 BUNDLED WITH
    2.4.8
