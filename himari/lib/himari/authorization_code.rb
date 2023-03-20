@@ -24,7 +24,7 @@ module Himari
     end
 
     def pkce?
-      code_challenge && code_challenge_method
+      !!(code_challenge && code_challenge_method)
     end
 
     def pkce_known_method?

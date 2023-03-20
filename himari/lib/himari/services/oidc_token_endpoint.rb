@@ -19,9 +19,15 @@ module Himari
         @issuer = issuer
       end
 
+      def call(env)
+        app.call(env)
+      rescue Rack::OAuth2::Server::Abstract::Error => e
+        e.finish
+      end
+
       def app
         Rack::OAuth2::Server::Token.new do |req, res|
-          client = @client_provider.find(id: req.client_id) { |c,h| c.match_hint?(**h) }
+          client = @client_provider.find(id: req.client_id)
           next req.invalid_client! unless client
           next req.invalid_client! unless client.match_secret?(req.client_secret)
 
@@ -51,7 +57,7 @@ module Himari
             res.access_token = token.to_bearer
 
             if authz.openid
-              signing_key = client.preferred_key_group ? @signing_key_provider.find(group: client.preferred_key_group, active: true) { |k,h| k.match_hint?(**h) } : @signing_key_provider.find(active: true) { |k| k.active? }
+              signing_key = @signing_key_provider.find(group: client.preferred_key_group, active: true)
               raise SigningKeyMissing unless signing_key
               res.id_token = IdToken.from_authz(authz, signing_key: signing_key, access_token: token.format.to_s, issuer: @issuer).to_jwt
             end

@@ -34,7 +34,7 @@ module Himari
         aud: @client_id,
         iat: @time.to_i,
         nbf: @time.to_i,
-        exp: (@time + 3600).to_i,
+        exp: (@time + 3600).to_i, # TODO: lifetime
       ).merge(
         @nonce ? { nonce: @nonce } : {}
       ).merge(

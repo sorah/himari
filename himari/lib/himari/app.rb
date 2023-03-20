@@ -90,7 +90,7 @@ module Himari
           authz: authz,
           client: client,
           storage: config.storage,
-        ).app.call(env)
+        ).call(env)
       else
         erb :login
       end
@@ -104,7 +104,7 @@ module Himari
         signing_key_provider: signing_key_provider,
         storage: config.storage,
         issuer: config.issuer,
-      ).app.call(env)
+      ).call(env)
     end
     post '/oidc/token', &token_ep
     post '/public/oidc/token', &token_ep

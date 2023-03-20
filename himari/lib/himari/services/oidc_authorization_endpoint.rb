@@ -15,6 +15,14 @@ module Himari
         @storage = storage
       end
 
+      def call(env)
+        app.call(env)
+      rescue Rack::OAuth2::Server::Abstract::Error => e
+        # XXX: finish???? https://github.com/nov/rack-oauth2/blob/v2.2.0/lib/rack/oauth2/server/authorize/error.rb#L19
+        # Call https://github.com/nov/rack-oauth2/blob/v2.2.0/lib/rack/oauth2/server/abstract/error.rb#L25
+        Rack::OAuth2::Server::Abstract::Error.instance_method(:finish).bind(e).call
+      end
+
       def app
         Rack::OAuth2::Server::Authorize.new do |req, res|
           # sanity check
@@ -31,7 +39,6 @@ module Himari
           end
 
           if requested_response_types.include?(:code)
-
             @authz.redirect_uri = res.redirect_uri
             @authz.nonce = req.nonce
 

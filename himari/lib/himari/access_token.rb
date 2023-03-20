@@ -71,12 +71,13 @@ module Himari
     end
 
     def secret_hash
-      @secret_hash ||= Digest::SHA384.hexdigest(secret)
+      @secret_hash ||= Base64.urlsafe_encode64(Digest::SHA384.digest(secret), padding: false)
     end
 
     def verify_secret!(given_secret)
-      dgst = [secret_hash].pack('H*')
-      raise SecretIncorrect unless Rack::Utils.secure_compare(dgst, Digest::SHA384.digest(given_secret))
+      dgst = Base64.urlsafe_decode64(secret_hash)
+      given_dgst = Digest::SHA384.digest(given_secret)
+      raise SecretIncorrect unless Rack::Utils.secure_compare(dgst, given_dgst)
       @secret = given_secret
       true
     end

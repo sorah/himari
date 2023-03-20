@@ -53,7 +53,7 @@ module Himari
           # Only supports Authorization Request Header Field method https://www.rfc-editor.org/rfc/rfc6750.html#section-2.1
           @given_token ||= begin
             ah = @env['HTTP_AUTHORIZATION']
-            method, token = ah.split(/\s+/, 2) # https://www.rfc-editor.org/rfc/rfc9110#name-credentials
+            method, token = ah&.split(/\s+/, 2) # https://www.rfc-editor.org/rfc/rfc9110#name-credentials
             if method&.downcase == 'bearer' && token && !token.empty?
               token
             else
