@@ -6,3 +6,18 @@ gem 'himari', path: File.join(root, 'himari')
 gem 'himari-aws', path: File.join(root, 'himari-aws')
 gem 'nokogiri'
 gem 'apigatewayv2_rack'
+
+# contribs
+gem 'omniauth-oauth2'
+gem 'omniauth-saml'
+#gem 'omniauth-twitter'
+gem 'omniauth-github'
+gem 'omniauth-auth0'
+#gem 'omniauth-shibboleth'
+gem 'omniauth-gitlab'
+#gem 'omniauth-kerberos'
+gem 'omniauth-google-oauth2'
+gem 'omniauth-discord'
+gem 'omniauth-apple'
+# gem 'omniauth-ldap' # omniauth < 2
+#gem 'omniauth-slack'# omniauth-oauth2 version constraints does not match with omniauth-github
