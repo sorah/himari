@@ -50,7 +50,7 @@ gem 'nokogiri'
 
 ### Secrets Manager Rotation Handler
 
-1. Deploy [./lib/himari/aws/secretsmanager_signing_key_rotation_handler.rb]() as a Lambda function. This file works standalone.
+1. Deploy [./lib/himari/aws/secretsmanager_signing_key_rotation_handler.rb](./lib/himari/aws/secretsmanager_signing_key_rotation_handler.rb) as a Lambda function. This file works standalone.
 
    - Refer to the [./lambda](./lambda) for prebuilt container image
 

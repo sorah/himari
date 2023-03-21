@@ -10,7 +10,7 @@ While this app does not aim to be a replacement, but you can consider this as a 
 
 ## Setup
 
-<i>See [./lambda-aws/lambda/terraform/](./lambda-aws/lambda/terraform/) for quick deployment on Lambda using Terraform modules.</i>
+<i>See [./himari-aws/lambda/terraform/](./himari-aws/lambda/terraform/) for quick deployment on Lambda using Terraform modules.</i>
 
 Deploy as a Rack application:
 
@@ -123,13 +123,13 @@ run Himari::App
 
 ## Plugins
 
-- [./himari-aws]() for AWS Lambda, DynamoDB and Secrets Manager integration
+- [./himari-aws](./himari-aws) for AWS Lambda, DynamoDB and Secrets Manager integration
 
 ## Examples
 
-- [./examples/config.details.ru](): Rule API details
-- [./examples/config.github.ru](): GitHub Team list API example
-- [./himari-aws]() for AWS Lambda, DynamoDB and Secrets Manager integration
+- [./examples/config.details.ru](./examples/config.details.ru): Rule API details
+- [./examples/config.github.ru](./examples/config.github.ru): GitHub Team list API example
+- [./himari-aws](./himari-aws) for AWS Lambda, DynamoDB and Secrets Manager integration
 
 ## Usage
 
