@@ -1,5 +1,8 @@
 require 'sinatra/base'
 require 'addressable'
+require 'base64'
+
+require 'himari/version'
 
 require 'himari/log_line'
 
@@ -66,7 +69,16 @@ module Himari
       end
 
       def cachebuster
-        env['himari.cachebuster'] || "#{Process.pid}"
+        env['himari.cachebuster'] ||= Base64.urlsafe_encode64(release_code, padding: false)
+      end
+
+      def release_code
+        env['himari.release'] ||= begin
+          [
+            Himari::VERSION,
+            config.release_fragment,
+          ].compact.join(':')
+        end
       end
 
       def request_id
@@ -83,6 +95,12 @@ module Himari
           xff: env['HTTP_X_FORWARDED_FOR'],
         }
       end
+
+      def msg(key, default = nil)
+        config.custom_messages[key] || default
+      end
+
+      include ERB::Util
     end
 
     before do
@@ -119,7 +137,7 @@ module Himari
         ).call(env)
       else
         logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
-        erb :login
+        erb config.custom_templates[:login] || :login
       end
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))

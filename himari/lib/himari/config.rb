@@ -5,7 +5,7 @@ require 'himari/log_line'
 
 module Himari
   class Config
-    def initialize(issuer:, storage:, providers: [], log_output: $stdout, log_level: Logger::INFO, preserve_rack_logger: false)
+    def initialize(issuer:, storage:, providers: [], log_output: $stdout, log_level: Logger::INFO, preserve_rack_logger: false, custom_templates: {}, custom_messages: {}, release_fragment: nil)
       @issuer = issuer
       @providers = providers
       @storage = storage
@@ -13,9 +13,13 @@ module Himari
       @log_output = log_output
       @log_level = log_level
       @preserve_rack_logger = preserve_rack_logger
+
+      @custom_messages = custom_messages
+      @custom_templates = custom_templates
+      @release_fragment = release_fragment
     end
 
-    attr_reader :issuer, :providers, :storage, :preserve_rack_logger
+    attr_reader :issuer, :providers, :storage, :preserve_rack_logger, :custom_messages, :custom_templates, :release_fragment
 
     def logger
       @logger ||= Logger.new(@log_output).tap do |l|

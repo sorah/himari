@@ -19,10 +19,10 @@ main {
   border: none;
 }
 
-main > header {
+main > header, main > footer {
   text-align: center;
 }
-main > header img{
+main > header img, main > footer img {
   max-width: 200px;
   height: auto;
 }

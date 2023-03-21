@@ -27,6 +27,10 @@ use(Himari::Middlewares::Config,
   # storage: Himari::Storages::Filesystem.new(File.join(__dir__, 'tmp', 'storage')),
   storage: Himari::Aws::DynamodbStorage.new(table_name: 'himari_dev'),
   log_level: Logger::DEBUG,
+  release_fragment: "#{Process.pid}",
+  custom_messages: {
+    header: '<p>  header </p>',
+  },
 )
 
 # Signing key

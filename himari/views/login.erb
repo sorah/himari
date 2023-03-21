@@ -2,16 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Himari Login</title>
-    <link rel="stylesheet" href="/public/index.css?v=<%= cachebuster %>" type="text/css" />
+    <title><%= h(msg(:page_title, nil) || msg(:title, "Login to Himari")) %></title>
+    <link rel="stylesheet" href="/public/index.css?cb=<%= cachebuster %>" type="text/css" />
     <meta name="viewport" content="initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
 
-    <meta name="himari:release" content="TODO:">
+    <meta name="himari:release" content="<%= release_code %>">
   </head>
 
-  <body class='himari-app himari-loading'>
+  <body class='himari-app himari-login'>
     <main>
+
+      <header>
+        <h1><%= msg(:title, "Login to Himari") %></h1>
+        <%= msg(:header) %>
+      </header>
+
       <nav class='actions'>
         <fieldset id='actions-fieldset'>
           <% known_providers.each do |provider| %>
@@ -22,6 +28,10 @@
           <% end %>
         </fieldset>
       </nav>
+
+      <footer>
+        <%= msg(:footer) %>
+      </footer>
     </main>
 
     <script type='text/javascript'>
