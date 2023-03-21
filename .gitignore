@@ -8,7 +8,7 @@ spec/reports/
 tmp/
 /dev/tmp/
 
-
+.terraform/
 
 # rspec failure tracking
 .rspec_status
