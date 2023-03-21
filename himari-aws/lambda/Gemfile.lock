@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/sorah/apigatewayv2_rack
+  revision: 3799cbcdf3250873efcb4aa30cfb1fd0bfa97d1c
+  specs:
+    apigatewayv2_rack (0.1.2)
+      rack
+
 PATH
   remote: ../../himari
   specs:
@@ -31,8 +38,6 @@ GEM
     addressable (2.8.1)
       public_suffix (>= 2.0.2, < 6.0)
     aes_key_wrap (1.1.0)
-    apigatewayv2_rack (0.1.1)
-      rack
     attr_required (1.0.1)
     aws-eventstream (1.2.0)
     aws-partitions (1.731.0)
@@ -192,7 +197,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  apigatewayv2_rack
+  apigatewayv2_rack!
   himari!
   himari-aws!
   nokogiri

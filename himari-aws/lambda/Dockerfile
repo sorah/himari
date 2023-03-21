@@ -1,6 +1,6 @@
 # context must be repository root
 FROM public.ecr.aws/lambda/ruby:2.7 as builder
-RUN yum install -y gcc gcc-c++ make pkg-config
+RUN yum install -y gcc gcc-c++ make pkg-config git
 
 COPY ./himari/himari.gemspec ${LAMBDA_TASK_ROOT}/app/himari/himari.gemspec
 COPY ./himari/lib/himari/version.rb ${LAMBDA_TASK_ROOT}/app/himari/lib/himari/version.rb
