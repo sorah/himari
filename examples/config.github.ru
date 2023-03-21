@@ -3,8 +3,10 @@ require 'himari'
 require 'himari/aws'
 require 'json'
 require 'omniauth'
-require 'open-uri'
-require 'rack/session'
+require 'omniauth-github'
+require 'rack'
+require 'rack/session/cookie'
+require 'faraday'
 
 use(Rack::Session::Cookie,
   path: '/',
@@ -52,12 +54,16 @@ use(Himari::Middlewares::ClaimsRule, name: 'github-initialize') do |context, dec
 
   decision.continue!
 end
+gh_faraday = Faraday.new(url: 'https://api.github.com') do |b|
+  b.response :json
+  b.response :raise_error
+end
 use(Himari::Middlewares::ClaimsRule, name: 'github-oauth-teams') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'github'
 
   # https://docs.github.com/en/rest/teams/teams?apiVersion=2022-11-28#list-teams-for-the-authenticated-user
   # (not available in GitHub Apps = only available in OAuth apps)
-  user_teams_resp = JSON.parse(URI.open('https://api.github.com/user/teams?per_page=100', { 'Accept' => 'application/vnd.github+json', 'Authorization' => "Bearer #{context.auth[:credentials][:token]}" }, 'r', &:read))
+  user_teams_resp = gh_faraday.get('user/teams', {per_page: 100}, { 'Accept' => 'application/vnd.github+json', 'Authorization' => "Bearer #{context.auth[:credentials][:token]}" }).body
 
   teams_in_scope = %w(
     contoso/engineers
@@ -81,7 +87,7 @@ end
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-with-teams') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'github'
 
-  if context.claims[:groups] && !context.claims[:group].empty?
+  if context.claims[:groups] && !context.claims[:groups].empty?
     next decision.allow!
   end
   
@@ -96,7 +102,7 @@ use(Himari::Middlewares::AuthenticationRule, name: 'deny-someone') do |context, 
 end
 
 # Authorize client on behalf of a signed in user based on authz rule
-use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decision|
   decision.allowed_claims.push(:groups)
 
   available_for_everyone = %w(

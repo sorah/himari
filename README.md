@@ -10,6 +10,8 @@ While this app does not aim to be a replacement, but you can consider this as a 
 
 ## Setup
 
+<i>See [./lambda-aws/lambda/terraform/](./lambda-aws/lambda/terraform/) for quick deployment on Lambda using Terraform modules.</i>
+
 Deploy as a Rack application:
 
 ```ruby
@@ -30,7 +32,7 @@ require 'himari'
 require 'json'
 require 'omniauth'
 require 'open-uri'
-require 'rack/session'
+require 'rack/session/cookie'
 
 use(Rack::Session::Cookie,
   path: '/',
@@ -94,7 +96,7 @@ use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-known-members')
 end
 
 # Authorization policies during OIDC request process from clients. Authz rules run during oidc authorization
-use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decision|
   clients_available_for_everyone = %w(wiki)
 
   # You can add custom_claim per client
@@ -107,7 +109,7 @@ use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decisio
   decision.skip!
 end
 # we can have many rules
-use(Himari::Middleware::AuthorizationRule, name: 'ban-something') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'ban-something') do |context, decision|
   if context.request.ip == '192.0.2.9'
     next decision.deny!("explicit deny for some banned ip")
   end

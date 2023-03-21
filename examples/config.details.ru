@@ -4,7 +4,7 @@ require 'himari/aws'
 require 'json'
 require 'omniauth'
 require 'open-uri'
-require 'rack/session'
+require 'rack/session/cookie'
 
 use(Rack::Session::Cookie,
   path: '/',
@@ -117,7 +117,7 @@ end
 
 ## AUTHZ RULE
 # Authorization policies during OIDC request process from clients
-use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decision|
   available_for_everyone = %w(
     wiki
   )
@@ -128,7 +128,7 @@ use(Himari::Middleware::AuthorizationRule, name: 'default') do |context, decisio
   decision.skip!
 end
 
-use(Himari::Middleware::AuthorizationRule, name: 'details') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decision|
   # claims
   context.claims
   context.user_data

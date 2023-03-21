@@ -5,6 +5,10 @@
 - Secrets Manager signing key provider
 - Lambda container image to host Himari itself (TODO)
 
+## Deploy on Lambda with Terraform
+
+- See [./lambda/terraform/](./lambda/terraform/) for quick deployment using Terraform modules.
+
 ## Installation
 
 ```ruby
@@ -44,11 +48,11 @@ gem 'nokogiri'
 
 ## Usage
 
-### Setup secrets manager secret
+### Secrets Manager Rotation Handler
 
 1. Deploy [./lib/himari/aws/secretsmanager_signing_key_rotation_handler.rb]() as a Lambda function. This file works standalone.
 
-   - TODO: container image
+   - Refer to the [./lambda](./lambda) for prebuilt container image
 
 2. Grant secrets manager a `lambda:InvokeFunction` to the function.
 3. Create a secrets manager secret and set up rotation.
@@ -70,7 +74,7 @@ require 'himari/aws'
 require 'json'
 require 'omniauth'
 require 'open-uri'
-require 'rack/session'
+require 'rack/session/cookie'
 
 use(Rack::Session::Cookie,
   path: '/',
@@ -122,7 +126,7 @@ use(Himari::Middlewares::AuthenticationRule, name: 'always-allow') do |context, 
   decision.allow!
 end
 
-use(Himari::Middleware::AuthorizationRule, name: 'always-allow') do |context, decision|
+use(Himari::Middlewares::AuthorizationRule, name: 'always-allow') do |context, decision|
   decision.allow! 
 end
 
