@@ -152,6 +152,9 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
 
   # deny can have human facing error
   next decision.deny!("internal log message", user_facing_message: 'error message for user') # explicit deny, stop processing
+
+  # authorization deny can suggest user to reauthenticate
+  next decision.deny!("reauthenticate", suggest: :reauthenticate)
 end
 
 run Himari::App

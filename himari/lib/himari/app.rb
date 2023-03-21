@@ -141,6 +141,17 @@ module Himari
       end
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
+
+      case e.result.authz_result&.suggestion
+      when nil
+        # do nothing
+      when :reauthenticate
+        logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
+        next erb(:login)
+      else
+        raise ArgumentError, "Unknown suggestion value for DownstreamAuthorization denial; #{e.as_log.inspect}"
+      end
+
       message_human = e.result.authz_result&.user_facing_message
       halt(403, "Forbidden#{message_human ? "; #{message_human}" : nil}")
     end

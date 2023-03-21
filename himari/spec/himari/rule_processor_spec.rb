@@ -255,4 +255,41 @@ RSpec.describe Himari::RuleProcessor do
       expect { result }.not_to raise_error
     end
   end
+
+  describe "invalid effects:" do
+    describe "double allow" do
+      let(:rules) do
+        [
+          Himari::Rule.new(name: 'doubleallow', block: proc { |c,d| d.allow!; d.allow!; }),
+        ]
+      end
+
+      specify { expect { subject }.to raise_error(Himari::Decisions::Base::DecisionAlreadyMade) }
+    end
+
+    describe "invalid choice" do
+      class TestDecisionLimited < TestDecision
+        allow_effects :continue, :skip
+      end
+      let(:initial_decision) { TestDecisionLimited.new }
+
+      let(:rules) do
+        [
+          Himari::Rule.new(name: 'invalid', block: proc { |c,d| d.allow! }),
+        ]
+      end
+
+      specify { expect { subject }.to raise_error(Himari::Decisions::Base::InvalidEffect) }
+    end
+
+    describe "allow with suggestion" do
+      let(:rules) do
+        [
+          Himari::Rule.new(name: 'invalid', block: proc { |c,d| d.allow!(nil, suggest: :something) }),
+        ]
+      end
+
+      specify { expect { subject }.to raise_error(Himari::Decisions::Base::InvalidEffect) }
+    end
+  end
 end

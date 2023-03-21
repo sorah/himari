@@ -72,6 +72,7 @@ use(Himari::Middlewares::ClaimsRule, name: 'developer-initialize') do |context, 
     name: context.auth[:info][:login],
     preferred_username: context.auth[:info][:login],
   )
+  decision.user_data[:auth_time] = Time.now.to_i
   decision.continue!
 end
 use(Himari::Middlewares::ClaimsRule, name: 'developer-custom') do |context, decision|
@@ -80,43 +81,6 @@ use(Himari::Middlewares::ClaimsRule, name: 'developer-custom') do |context, deci
   decision.continue!
 end
 
-use(Himari::Middlewares::ClaimsRule, name: 'github-initialize') do |context, decision|
-  next decision.skip!("provider not in scope") unless context.provider == 'github'
-
-  decision.initialize_claims!(
-    sub: "github_#{context.auth[:uid]}",
-    name: context.auth[:info][:nickname],
-    preferred_username: context.auth[:info][:nickname],
-    email: context.auth[:info][:email],
-  )
-  decision.user_data[:provider] = 'github'
-
-  decision.continue!
-end
-use(Himari::Middlewares::ClaimsRule, name: 'github-oauth-teams') do |context, decision|
-  next decision.skip!("provider not in scope") unless context.provider == 'github'
-
-  # https://docs.github.com/en/rest/teams/teams?apiVersion=2022-11-28#list-teams-for-the-authenticated-user
-  # (not available in GitHub Apps = only available in OAuth apps)
-  user_teams_resp = JSON.parse(URI.open('https://api.github.com/user/teams?per_page=100', { 'Accept' => 'application/vnd.github+json', 'Authorization' => "Bearer #{context.auth[:credentials][:token]}" }, 'r', &:read))
-
-  teams_in_scope = %w(
-    contoso/engineers
-    contoso/admins
-  )
-  teams = user_teams_resp
-    .map { |team| "#{team.fetch('organization').fetch('login')}/#{team.fetch('slug')}" }
-    .select { |login_slug| teams_in_scope.include?(login_slug) }
-
-  next decision.skip!("no teams in scope") if teams.empty?
-
-  # claims
-  decision.claims[:groups] ||= []
-  decision.claims[:groups].concat(teams)
-  decision.claims[:groups].uniq!
-
-  decision.continue!
-end
 
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-dev') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'developer'
@@ -124,17 +88,19 @@ use(Himari::Middlewares::AuthenticationRule, name: 'allow-dev') do |context, dec
   #decision.deny!('test', user_facing_message: 'human test')
   decision.allow!
 end
-use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-with-teams') do |context, decision|
-  next decision.skip!("provider not in scope") unless context.provider == 'github'
 
-  if context.claims[:groups] && !context.claims[:group].empty?
-    next decision.allow!
+#### AUTHZ RULE
+
+use(Himari::Middlewares::AuthorizationRule, name: 'old-auth') do |context, decision|
+  if context.claims[:name] == 'reauth'
+    next decision.deny!('because you are reauth', suggest: :reauthenticate)
   end
-  
+  if !context.user_data[:auth_time] || Time.now.to_i > (context.user_data[:auth_time] + 60)
+    next decision.deny!('too old auth_time', suggest: :reauthenticate)
+  end
   decision.skip!
 end
 
-# Authorization policies during OIDC request process from clients
 use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decision|
   decision.claims[:something2] =  'custom2'
   decision.allowed_claims.push(:something1)

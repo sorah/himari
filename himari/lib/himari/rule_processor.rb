@@ -2,7 +2,7 @@ module Himari
   class RuleProcessor
     class MissingDecisionError < StandardError; end
 
-    Result = Struct.new(:rule_name, :allowed, :explicit_deny, :decision, :decision_log, :user_facing_message, keyword_init: true) do
+    Result = Struct.new(:rule_name, :allowed, :explicit_deny, :decision, :decision_log, :user_facing_message, :suggestion, keyword_init: true) do
       def as_log
         {
           rule_name: rule_name,
@@ -10,7 +10,9 @@ module Himari
           explicit_deny: explicit_deny,
           decision: decision&.as_log,
           decision_log: decision_log.map(&:to_h),
-        }
+        }.tap do |x|
+          x[:suggestion] = suggestion if suggestion
+        end
       end
     end
 
@@ -63,6 +65,7 @@ module Himari
         result.allowed = false
         result.explicit_deny = true
         result.user_facing_message = decision.effect_user_facing_message
+        result.suggestion = decision.effect_suggestion
 
       else
         raise "Unknown effect #{decision.effect} [BUG]"
