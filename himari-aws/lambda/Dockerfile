@@ -20,8 +20,8 @@ COPY . ${LAMBDA_TASK_ROOT}/app
 
 FROM public.ecr.aws/lambda/ruby:2.7
 
-COPY --from=builder ${LAMBDA_TASK_ROOT}/app ${LAMBDA_TASK_ROOT}/app
 COPY --from=builder ${LAMBDA_TASK_ROOT}/vendor ${LAMBDA_TASK_ROOT}/vendor
+COPY . ${LAMBDA_TASK_ROOT}/app
 
 COPY ./himari-aws/lambda/entrypoint.rb ${LAMBDA_TASK_ROOT}/himari_lambda_entrypoint.rb
 
