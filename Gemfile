@@ -10,3 +10,12 @@ gem 'rackup'
 gem 'puma'
 
 gem 'nokogiri'
+
+gem 'rake'
+
+group :test do
+  gem 'rspec', '~> 3.0'
+  gem 'simplecov'
+  gem 'simplecov-html'
+  gem 'rack-test'
+end
