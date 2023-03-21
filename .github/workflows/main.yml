@@ -53,16 +53,9 @@ jobs:
         with:
           context: '.'
           file: './himari-aws/lambda/Dockerfile'
-          load: true
-          tags: "himari-lambda:latest,public.ecr.aws/sorah/himari-lambda:${{ github.sha }},public.ecr.aws/sorah/himari-lambda:latest"
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: 'Push image'
-        uses: 'docker/build-push-action@v3'
-        with:
-          context: '.'
-          file: './himari-aws/lambda/Dockerfile'
           push: true
           tags: "public.ecr.aws/sorah/himari-lambda:${{ github.sha }},public.ecr.aws/sorah/himari-lambda:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
 
