@@ -16,6 +16,12 @@
       <header>
         <h1><%= msg(:title, "Login to Himari") %></h1>
         <%= msg(:header) %>
+
+        <% if @notice %>
+          <div class='notice'>
+            <p><%=h @notice %></p>
+          </div>
+        <% end %>
       </header>
 
       <nav class='actions'>

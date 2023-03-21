@@ -93,7 +93,7 @@ end
 
 use(Himari::Middlewares::AuthorizationRule, name: 'old-auth') do |context, decision|
   if context.claims[:name] == 'reauth'
-    next decision.deny!('because you are reauth', suggest: :reauthenticate)
+    next decision.deny!('because you are reauth', suggest: :reauthenticate, user_facing_message: 'you are reauth...')
   end
   if !context.user_data[:auth_time] || Time.now.to_i > (context.user_data[:auth_time] + 60)
     next decision.deny!('too old auth_time', suggest: :reauthenticate)
