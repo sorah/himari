@@ -141,7 +141,8 @@ module Himari
       end
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
-      halt 403, "Forbidden"
+      message_human = e.result.authz_result&.user_facing_message
+      halt(403, "Forbidden#{message_human ? "; #{message_human}" : nil}")
     end
 
     token_ep = proc do
@@ -187,7 +188,7 @@ module Himari
 
       # do upstream auth
       authn = Himari::Services::UpstreamAuthentication.from_request(request).perform
-      logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: authn.as_log))
+      logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: authhash[:uid], provider: authhash[:provider], result: authn.as_log))
       raise unless authn.authn_result.allowed # sanity check
 
       given_back_to = request.env['omniauth.params']&.fetch('back_to', nil)
@@ -206,7 +207,8 @@ module Himari
       redirect back_to
     rescue Himari::Services::UpstreamAuthentication::UnauthorizedError => e
       logger&.warn(Himari::LogLine.new('authentication denied', req: request_as_log, err: e.class.inspect, allowed: e.result.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: e.as_log))
-      halt(401, 'Unauthorized')
+      message_human = e.result.authn_result&.user_facing_message
+      halt(401, "Unauthorized#{message_human ? "; #{message_human}" : nil}")
     end
     get '/auth/:provider/callback', &omniauth_callback
     post '/auth/:provider/callback', &omniauth_callback

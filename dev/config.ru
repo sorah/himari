@@ -121,7 +121,7 @@ end
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-dev') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'developer'
 
-  #decision.deny!
+  #decision.deny!('test', user_facing_message: 'human test')
   decision.allow!
 end
 use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-with-teams') do |context, decision|

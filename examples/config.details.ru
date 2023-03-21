@@ -149,6 +149,9 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
   next decision.allow! # allow, continues processing
   next decision.continue! # make no decision (preserves modified claims), continues processing
   next decision.skip! # make no decision (discards modified claims), continues processing
+
+  # deny can have human facing error
+  next decision.deny!("internal log message", user_facing_message: 'error message for user') # explicit deny, stop processing
 end
 
 run Himari::App

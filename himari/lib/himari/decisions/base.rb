@@ -18,7 +18,7 @@ module Himari
         raise "#{self.class.name}.valid_effects is missing [BUG]" unless self.class.valid_effects
       end
 
-      attr_reader :effect, :effect_comment, :rule_name
+      attr_reader :effect, :effect_comment, :effect_user_facing_message, :rule_name
 
       def to_evolve_args
         raise NotImplementedError
@@ -29,7 +29,9 @@ module Himari
           rule_name: rule_name,
           effect: effect,
           effect_comment: effect_comment,
-        }
+        }.tap do |x|
+          x[:effect_user_facing_message] = effect_user_facing_message if effect_user_facing_message
+        end
       end
 
       def as_log
@@ -46,18 +48,19 @@ module Himari
         self
       end
 
-      def decide!(effect, comment = "")
+      def decide!(effect, comment = "", user_facing_message: nil)
         raise DecisionAlreadyMade, "decision can only be made once per rule (#{rule_name})" if @effect
         raise InvalidEffect, "this effect is not valid under this rule. Valid effects: #{self.class.valid_effects.inspect} (#{rule_name})" unless self.class.valid_effects.include?(effect)
         @effect = effect
         @effect_comment = comment
+        @effect_user_facing_message = user_facing_message
         nil
       end
 
-      def allow!(comment = ""); decide!(:allow, comment); end
-      def continue!(comment = ""); decide!(:continue, comment); end
-      def deny!(comment = ""); decide!(:deny, comment); end
-      def skip!(comment = ""); decide!(:skip, comment); end
+      def allow!(*args, **kwargs); decide!(:allow, *args, **kwargs); end
+      def continue!(*args, **kwargs); decide!(:continue, *args, **kwargs); end
+      def deny!(*args, **kwargs); decide!(:deny, *args, **kwargs); end
+      def skip!(*args, **kwargs); decide!(:skip, *args, **kwargs); end
     end
   end
 end
