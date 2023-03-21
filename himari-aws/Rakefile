@@ -5,4 +5,6 @@ require "rspec/core/rake_task"
 
 RSpec::Core::RakeTask.new(:spec)
 
+Bundler::GemHelper.tag_prefix = "himari-aws/"
+
 task default: :spec

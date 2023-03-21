@@ -1,0 +1,8 @@
+source 'https://rubygems.org'
+
+root = File.join('..', '..')
+
+gem 'himari', path: File.join(root, 'himari')
+gem 'himari-aws', path: File.join(root, 'himari-aws')
+gem 'nokogiri'
+gem 'apigatewayv2_rack'

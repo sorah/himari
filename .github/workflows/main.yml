@@ -5,8 +5,6 @@ on:
     branches:
       - main
 
-  pull_request:
-
 jobs:
   himari-rspec:
     runs-on: ubuntu-latest
@@ -28,3 +26,42 @@ jobs:
         bundler-cache: true
     - run: bundle exec rspec
       working-directory: himari
+
+  himari-lambda-image:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: "public.ecr.aws/sorah/himari-lambda:${{ github.sha }}"
+    steps:
+      - uses: docker/setup-buildx-action@v2
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: "us-west-2"
+          role-skip-session-tagging: true
+          role-to-assume: "arn:aws:iam::341857463381:role/gha-himari"
+          mask-aws-account-id: 'false' # only string works
+      - id: login-ecr
+        name: 'Login to ECR Public'
+        run: 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws'
+      - run: "echo '${{ github.sha }}' > REVISION"
+      - name: 'Build image'
+        uses: 'docker/build-push-action@v3'
+        with:
+          context: '.'
+          file: './himari-aws/lambda/Dockerfile'
+          load: true
+          tags: "himari-lambda:latest,public.ecr.aws/sorah/himari-lambda:${{ github.sha }},public.ecr.aws/sorah/himari-lambda:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 'Push image'
+        uses: 'docker/build-push-action@v3'
+        with:
+          context: '.'
+          file: './himari-aws/lambda/Dockerfile'
+          push: true
+          tags: "public.ecr.aws/sorah/himari-lambda:${{ github.sha }},public.ecr.aws/sorah/himari-lambda:latest"
+
+

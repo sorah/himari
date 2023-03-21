@@ -1,0 +1,157 @@
+PATH
+  remote: ../../himari
+  specs:
+    himari (0.1.0)
+      addressable
+      omniauth (>= 2.0)
+      openid_connect
+      rack-oauth2
+      rack-protection
+      sinatra (>= 3.0)
+
+PATH
+  remote: ..
+  specs:
+    himari-aws (0.1.0)
+      aws-sdk-dynamodb
+      aws-sdk-secretsmanager
+      himari
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activemodel (7.0.4.3)
+      activesupport (= 7.0.4.3)
+    activesupport (7.0.4.3)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      tzinfo (~> 2.0)
+    addressable (2.8.1)
+      public_suffix (>= 2.0.2, < 6.0)
+    aes_key_wrap (1.1.0)
+    apigatewayv2_rack (0.1.1)
+      rack
+    attr_required (1.0.1)
+    aws-eventstream (1.2.0)
+    aws-partitions (1.731.0)
+    aws-sdk-core (3.170.1)
+      aws-eventstream (~> 1, >= 1.0.2)
+      aws-partitions (~> 1, >= 1.651.0)
+      aws-sigv4 (~> 1.5)
+      jmespath (~> 1, >= 1.6.1)
+    aws-sdk-dynamodb (1.83.0)
+      aws-sdk-core (~> 3, >= 3.165.0)
+      aws-sigv4 (~> 1.1)
+    aws-sdk-secretsmanager (1.73.0)
+      aws-sdk-core (~> 3, >= 3.165.0)
+      aws-sigv4 (~> 1.1)
+    aws-sigv4 (1.5.2)
+      aws-eventstream (~> 1, >= 1.0.2)
+    bindata (2.4.15)
+    concurrent-ruby (1.2.2)
+    date (3.3.3)
+    faraday (2.7.4)
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-follow_redirects (0.3.0)
+      faraday (>= 1, < 3)
+    faraday-net_http (3.0.2)
+    hashie (5.0.0)
+    i18n (1.12.0)
+      concurrent-ruby (~> 1.0)
+    jmespath (1.6.2)
+    json-jwt (1.16.3)
+      activesupport (>= 4.2)
+      aes_key_wrap
+      bindata
+      faraday (~> 2.0)
+      faraday-follow_redirects
+    mail (2.8.1)
+      mini_mime (>= 0.1.1)
+      net-imap
+      net-pop
+      net-smtp
+    mini_mime (1.1.2)
+    mini_portile2 (2.8.1)
+    minitest (5.18.0)
+    mustermann (3.0.0)
+      ruby2_keywords (~> 0.0.1)
+    net-imap (0.3.4)
+      date
+      net-protocol
+    net-pop (0.1.2)
+      net-protocol
+    net-protocol (0.2.1)
+      timeout
+    net-smtp (0.3.3)
+      net-protocol
+    nokogiri (1.14.2)
+      mini_portile2 (~> 2.8.0)
+      racc (~> 1.4)
+    omniauth (2.1.1)
+      hashie (>= 3.4.6)
+      rack (>= 2.2.3)
+      rack-protection
+    openid_connect (2.2.0)
+      activemodel
+      attr_required (>= 1.0.0)
+      faraday (~> 2.0)
+      faraday-follow_redirects
+      json-jwt (>= 1.16)
+      net-smtp
+      rack-oauth2 (~> 2.2)
+      swd (~> 2.0)
+      tzinfo
+      validate_email
+      validate_url
+      webfinger (~> 2.0)
+    public_suffix (5.0.1)
+    racc (1.6.2)
+    rack (2.2.6.4)
+    rack-oauth2 (2.2.0)
+      activesupport
+      attr_required
+      faraday (~> 2.0)
+      faraday-follow_redirects
+      json-jwt (>= 1.11.0)
+      rack (>= 2.1.0)
+    rack-protection (3.0.5)
+      rack
+    ruby2_keywords (0.0.5)
+    sinatra (3.0.5)
+      mustermann (~> 3.0)
+      rack (~> 2.2, >= 2.2.4)
+      rack-protection (= 3.0.5)
+      tilt (~> 2.0)
+    swd (2.0.2)
+      activesupport (>= 3)
+      attr_required (>= 0.0.5)
+      faraday (~> 2.0)
+      faraday-follow_redirects
+    tilt (2.1.0)
+    timeout (0.3.2)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
+    validate_email (0.1.6)
+      activemodel (>= 3.0)
+      mail (>= 2.2.5)
+    validate_url (1.0.15)
+      activemodel (>= 3.0.0)
+      public_suffix
+    webfinger (2.1.2)
+      activesupport
+      faraday (~> 2.0)
+      faraday-follow_redirects
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  apigatewayv2_rack
+  himari!
+  himari-aws!
+  nokogiri
+
+BUNDLED WITH
+   2.3.21
