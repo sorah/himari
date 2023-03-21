@@ -182,6 +182,9 @@ module Himari
     end
 
     omniauth_callback = proc do
+      authhash = request.env['omniauth.auth']
+      next halt(400, 'Bad Request') unless authhash
+
       # do upstream auth
       authn = Himari::Services::UpstreamAuthentication.from_request(request).perform
       logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: authn.as_log))
