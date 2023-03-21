@@ -71,7 +71,8 @@ module Himari
       end
 
       def self.generate_secret(req, _current)
-        param = JSON.parse(req.secret.tags.find { |t| t.name == ENV.fetch('HIMARI_KEYGEN_PARAM_TAG_KEY', 'HimariKey') }&.value || ENV.fetch('HIMARI_KEYGEN_PARAM_DEFAULT', '{"kty": "rsa", "len": 2048}'), symbolize_names: true)
+        param_raw = req.secret.tags&.find { |t| t.key == ENV.fetch('HIMARI_KEYGEN_PARAM_TAG_KEY', 'HimariKey') }&.value || ENV.fetch('HIMARI_KEYGEN_PARAM_DEFAULT', '{"kty": "rsa", "len": 2048}')
+        param = parse_keygen_param(param_raw)
         puts "createSecret: generate_secret with #{param.inspect}"
 
         case param.fetch(:kty, 'rsa').downcase
@@ -91,6 +92,27 @@ module Himari
         else
           raise ArgumentError, "unknown kty: #{param.inspect}"
         end
+      end
+
+      # Scan k=v,k2=v2
+      def self.parse_keygen_param(str)
+        begin
+          ary = str.scan(/(.+?)=(.+?)(?:,|$)/)
+          unless ary.empty?
+            return ary.to_h.transform_keys(&:to_sym)
+          end
+        end
+
+        if str.start_with?('eyJ')
+          return JSON.parse(Base64.decode64(str), symbolize_names: true)
+        end
+
+        begin
+          return JSON.parse(str, symbolize_names: true)
+        rescue JSON::ParserError
+        end
+
+        raise "cannot parse keygen param #{str.inspect}"
       end
 
       def self.set_secret(req)

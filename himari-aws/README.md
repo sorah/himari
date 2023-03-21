@@ -55,9 +55,11 @@ gem 'nokogiri'
 
 You can tag a secret with `HimariKey` key and the following value to customize key types:
 
-- RSA 2048-bit: `{"kty": "rsa", "len": 2048}`
-- RSA 4096-bit: `{"kty": "rsa", "len": 4096}`
-- EC P-256: `{"kty": "ec", "len": 256}`
+- RSA 2048-bit: `kty=rsa,len=2048`
+- RSA 4096-bit: `kty=rsa,len=4096`
+- EC P-256: `kty=ec,len=256`
+
+_you may also specify in base64'd json_
 
 ### config.ru
 
