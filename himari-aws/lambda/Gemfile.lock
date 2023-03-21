@@ -13,6 +13,7 @@ PATH
   remote: ..
   specs:
     himari-aws (0.1.0)
+      apigatewayv2_rack
       aws-sdk-dynamodb
       aws-sdk-secretsmanager
       himari

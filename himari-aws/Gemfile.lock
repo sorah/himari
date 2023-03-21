@@ -13,6 +13,7 @@ PATH
   remote: .
   specs:
     himari-aws (0.1.0)
+      apigatewayv2_rack
       aws-sdk-dynamodb
       aws-sdk-secretsmanager
       himari
@@ -30,6 +31,8 @@ GEM
     addressable (2.8.1)
       public_suffix (>= 2.0.2, < 6.0)
     aes_key_wrap (1.1.0)
+    apigatewayv2_rack (0.1.1)
+      rack
     attr_required (1.0.1)
     aws-eventstream (1.2.0)
     aws-partitions (1.730.0)

@@ -23,9 +23,11 @@ FROM public.ecr.aws/lambda/ruby:2.7
 COPY --from=builder ${LAMBDA_TASK_ROOT}/app ${LAMBDA_TASK_ROOT}/app
 COPY --from=builder ${LAMBDA_TASK_ROOT}/vendor ${LAMBDA_TASK_ROOT}/vendor
 
+COPY ./himari-aws/lambda/entrypoint.rb ${LAMBDA_TASK_ROOT}/himari_lambda_entrypoint.rb
+
 WORKDIR ${LAMBDA_TASK_ROOT}/app
 ENV BUNDLE_GEMFILE ${LAMBDA_TASK_ROOT}/app/himari-aws/lambda/Gemfile
 ENV BUNDLE_PATH ${LAMBDA_TASK_ROOT}/vendor/bundle
 ENV BUNDLE_DEPLOYMENT 1
 ENV HIMARI_LAMBDA_IMAGE 1
-CMD [ "himari/aws/lambda_handler.Himari::Aws::LambdaHandler.rack_handler" ]
+CMD [ "himari_lambda_entrypoint.Himari::Aws::LambdaHandler.rack_handler" ]

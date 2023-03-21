@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "aws-sdk-secretsmanager"
   spec.add_dependency "aws-sdk-dynamodb"
-  #spec.add_dependency "apigatewayv2_rack"
+  spec.add_dependency "apigatewayv2_rack"
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"
