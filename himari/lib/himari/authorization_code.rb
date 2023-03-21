@@ -10,15 +10,23 @@ module Himari
     nonce
     code_challenge
     code_challenge_method
+    created_at
+    lifetime
     expiry
   )
   AuthorizationCode = Struct.new(*authz_attrs, keyword_init: true) do
     def self.make(**kwargs)
       new(
         code: SecureRandom.urlsafe_base64(32),
-        expiry: Time.now.to_i + 900,
+        created_at: Time.now.to_i,
         **kwargs,
       )
+    end
+
+    alias _expiry_raw expiry
+    private :_expiry_raw
+    def expiry
+      self._expiry_raw || (self.expiry = created_at + (lifetime || 900))
     end
 
     def valid_redirect_uri?(given_uri)
@@ -59,6 +67,8 @@ module Himari
         claims: claims,
         nonce: nonce,
         openid: openid,
+        created_at: created_at.to_i,
+        lifetime: lifetime.to_i,
         expiry: expiry.to_i,
         pkce: pkce?,
         pkce_method: code_challenge_method,
@@ -76,6 +86,8 @@ module Himari
         nonce: nonce,
         code_challenge: code_challenge,
         code_challenge_method: code_challenge_method,
+        created_at: created_at.to_i,
+        lifetime: lifetime.to_i,
         expiry: expiry.to_i,
       }
     end

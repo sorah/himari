@@ -19,14 +19,15 @@ module Himari
 
       allow_effects(:allow, :deny, :continue, :skip)
 
-      def initialize(claims: {}, allowed_claims: DEFAULT_ALLOWED_CLAIMS, lifetime: 3600 * 12)
+      def initialize(claims: {}, allowed_claims: DEFAULT_ALLOWED_CLAIMS, lifetime: 3600)
         super()
         @claims = claims
         @allowed_claims = allowed_claims
         @lifetime = lifetime
       end
 
-      attr_reader :claims, :allowed_claims, :lifetime
+      attr_reader :claims, :allowed_claims
+      attr_accessor :lifetime
 
       def to_evolve_args
         {
@@ -37,10 +38,10 @@ module Himari
       end
 
       def as_log
-        to_h.merge(claims: output, lifetime: @lifetime&.to_i)
+        to_h.merge(claims: output_claims, lifetime: @lifetime&.to_i)
       end
 
-      def output
+      def output_claims
         claims.select { |k,_v| allowed_claims.include?(k) }
       end
     end

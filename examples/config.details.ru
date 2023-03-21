@@ -144,6 +144,9 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
   # allowed claims (Set). Names not included in allowed_claims will not appear in an outbound ID token.
   decision.allowed_claims.push(:something)
 
+  # lifetime of access token and ID token
+  decision.lifetime = 3600 * 12
+
   # Rule must always call one of the followings
   next decision.deny! # explicit deny, stop processing
   next decision.allow! # allow, continues processing

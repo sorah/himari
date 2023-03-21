@@ -11,11 +11,12 @@ module Himari
         claims: authz.claims,
         client_id: authz.client_id,
         nonce: authz.nonce,
+        lifetime: authz.lifetime,
         **kwargs
       )
     end
 
-    def initialize(claims:, client_id:, nonce:, signing_key:, issuer:, access_token: nil, time: Time.now)
+    def initialize(claims:, client_id:, nonce:, signing_key:, issuer:, access_token: nil, time: Time.now, lifetime: 3600)
       @claims = claims
       @client_id = client_id
       @nonce = nonce
@@ -23,6 +24,7 @@ module Himari
       @issuer = issuer
       @access_token = access_token
       @time = time
+      @lifetime = lifetime
     end
 
     attr_reader :claims, :nonce, :signing_key
@@ -34,7 +36,7 @@ module Himari
         aud: @client_id,
         iat: @time.to_i,
         nbf: @time.to_i,
-        exp: (@time + 3600).to_i, # TODO: lifetime
+        exp: (@time + @lifetime).to_i,
       ).merge(
         @nonce ? { nonce: @nonce } : {}
       ).merge(

@@ -127,6 +127,7 @@ module Himari
         authz = AuthorizationCode.make(
           client_id: decision.client.id,
           claims: decision.claims,
+          lifetime: decision.lifetime,
         )
 
         Himari::Services::OidcAuthorizationEndpoint.new(

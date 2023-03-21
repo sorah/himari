@@ -30,6 +30,7 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
           d.allowed_claims.push(:claims, :new_claims)
           d.claims[:claims] = 2
           d.claims[:new_claims] = 2
+          d.lifetime = 12345
           d.allow!
         }),
       ]
@@ -39,6 +40,7 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
       expect(client).to receive(:ok)
       expect(result.client).to eq(client)
       expect(result.claims).to eq(claims: 2, new_claims: 2)
+      expect(result.lifetime).to eq(12345)
       expect(result.authz_result.allowed).to eq(true)
     end
   end

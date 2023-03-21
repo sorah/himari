@@ -21,7 +21,7 @@ module Himari
         end
       end
 
-      Result = Struct.new(:client, :claims, :authz_result) do
+      Result = Struct.new(:client, :claims, :lifetime, :authz_result) do
         def as_log
           {
             client: client.as_log,
@@ -63,10 +63,11 @@ module Himari
         context = Himari::Decisions::Authorization::Context.new(claims: @session.claims, user_data: @session.user_data, request: @request, client: @client).freeze
 
         authorization = Himari::RuleProcessor.new(context, Himari::Decisions::Authorization.new(claims: @session.claims.dup)).run(@authz_rules)
-        raise ForbiddenError.new(Result.new(@client, nil, authorization)) unless authorization.allowed
+        raise ForbiddenError.new(Result.new(@client, nil, nil, authorization)) unless authorization.allowed
 
-        claims = authorization.decision.output
-        Result.new(@client, claims, authorization)
+        claims = authorization.decision.output_claims
+        lifetime = authorization.decision.lifetime
+        Result.new(@client, claims, lifetime, authorization)
       end
     end
   end
