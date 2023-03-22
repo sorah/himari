@@ -26,7 +26,10 @@ module Himari
   class App < Sinatra::Base
     set :root, File.expand_path(File.join(__dir__, '..', '..'))
 
-    set :protection, use: %i(authenticity_token), except: %i(remote_token)
+    # remote_token: disabled in favor of authenticity_token (more stricter)
+    # json_csrf: can be prevented using x-content-type-options:nosniff
+    set :protection, use: %i(authenticity_token), except: %i(remote_token json_csrf)
+
     set :logging, nil
 
     ProviderCandidate = Struct.new(:name, :button, :action, keyword_init: true)
