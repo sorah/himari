@@ -30,6 +30,13 @@ use(Himari::Middlewares::Config,
   release_fragment: "#{Process.pid}",
   custom_messages: {
     header: '<p>  header </p>',
+    footer: <<~EOH,
+      <p>
+        <small>
+          Powered by <a href="https://github.com/sorah/himari">sorah/himari</a>
+        </small>
+      </p>
+    EOH
   },
 )
 
