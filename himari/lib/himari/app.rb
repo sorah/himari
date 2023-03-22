@@ -109,7 +109,7 @@ module Himari
 
     get '/' do
       content_type :text
-      "Himari\n"
+      "Himari #{release_code}\n"
     end
 
     get '/oidc/authorize' do
