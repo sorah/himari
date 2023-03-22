@@ -9,6 +9,8 @@ gem 'nokogiri'
 gem 'apigatewayv2_rack', '>= 0.1.3'
 
 # contribs
+gem 'secure_headers'
+
 gem 'omniauth-oauth2'
 gem 'omniauth-saml'
 #gem 'omniauth-twitter'

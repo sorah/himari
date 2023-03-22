@@ -159,6 +159,7 @@ GEM
       nokogiri (>= 1.13.10)
       rexml
     ruby2_keywords (0.0.5)
+    secure_headers (6.5.0)
     sinatra (3.0.5)
       mustermann (~> 3.0)
       rack (~> 2.2, >= 2.2.4)
@@ -204,6 +205,7 @@ DEPENDENCIES
   omniauth-google-oauth2
   omniauth-oauth2
   omniauth-saml
+  secure_headers
 
 BUNDLED WITH
    2.3.21
