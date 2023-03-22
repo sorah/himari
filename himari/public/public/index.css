@@ -67,6 +67,10 @@ main > header img, main > footer img {
   margin-bottom: 24px;
 }
 
+footer, footer a, footer a:visited {
+  color: #5e5e6b;
+}
+
 .d-none {
   display: none;
 }
