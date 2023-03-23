@@ -19,11 +19,11 @@ module Himari
         raise NotImplementedError
       end
 
-      def make(**kwargs)
+      def make(lifetime: nil, **kwargs)
         new(
           handle: SecureRandom.urlsafe_base64(32),
           secret: SecureRandom.urlsafe_base64(48),
-          expiry: Time.now.to_i + default_lifetime,
+          expiry: Time.now.to_i + (lifetime || default_lifetime),
           **kwargs
         )
       end

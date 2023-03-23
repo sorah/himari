@@ -13,16 +13,20 @@ module Himari
 
       allow_effects(:continue, :skip)
 
-      def initialize(claims: nil, user_data: nil)
+      def initialize(claims: nil, user_data: nil, lifetime: nil)
         super()
         @claims = claims
         @user_data = user_data
+        @lifetime = lifetime
       end
+
+      attr_accessor :lifetime
 
       def to_evolve_args
         {
           claims: @claims.dup,
           user_data: @user_data.dup,
+          lifetime: @lifetime&.to_i,
         }
       end
 
@@ -31,7 +35,7 @@ module Himari
       end
 
       def output
-        Himari::SessionData.new(claims: claims, user_data: user_data)
+        Himari::SessionData.make(claims: claims, user_data: user_data, lifetime: lifetime)
       end
 
       def initialize_claims!(claims = {})
