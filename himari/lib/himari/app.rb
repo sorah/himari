@@ -6,8 +6,11 @@ require 'himari/version'
 
 require 'himari/log_line'
 
+require 'himari/token_string'
 require 'himari/provider_chain'
+
 require 'himari/authorization_code'
+require 'himari/session_data'
 
 require 'himari/middlewares/client'
 require 'himari/middlewares/config'
@@ -34,9 +37,25 @@ module Himari
 
     ProviderCandidate = Struct.new(:name, :button, :action, keyword_init: true)
 
+    class InvalidSessionToken < StandardError; end
+
     helpers do
       def current_user
-        session[:session_data]
+        return @current_user if defined? @current_user
+        given_token = session[:himari_session]
+        return nil unless given_token
+
+        given_parsed_token = Himari::SessionData.parse(given_token)
+
+        token = config.storage.find_session(given_parsed_token.handle)
+        raise InvalidSessionToken, "no session found in storage (possibly expired)" unless token
+        token.verify!(secret: given_parsed_token.secret)
+
+        @current_user = token
+      rescue InvalidSessionToken, Himari::TokenString::Error => e
+        logger&.warn(Himari::LogLine.new('invalid session token given', req: request_as_log, err: e.class.inspect, result: e.as_log))
+        session.delete(:himari_session)
+        nil
       end
 
       def config
@@ -124,7 +143,7 @@ module Himari
       if current_user
         # do downstream authz and process oidc request
         decision = Himari::Services::DownstreamAuthorization.from_request(session: current_user, client: client, request: request).perform
-        logger&.info(Himari::LogLine.new('authorize: downstream authorized', req: request_as_log, allowed: decision.authz_result.allowed, result: decision.as_log))
+        logger&.info(Himari::LogLine.new('authorize: downstream authorized', req: request_as_log, session: current_user.as_log, allowed: decision.authz_result.allowed, result: decision.as_log))
         raise unless decision.authz_result.allowed # sanity check
 
         authz = AuthorizationCode.make(
@@ -141,10 +160,10 @@ module Himari
         ).call(env)
       else
         logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
-        erb config.custom_templates[:login] || :login
+        erb(config.custom_templates[:login] || :login)
       end
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
-      logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
+      logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
 
       @notice = message_human = e.result.authz_result&.user_facing_message
 
@@ -152,8 +171,8 @@ module Himari
       when nil
         # do nothing
       when :reauthenticate
-        logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
-        next erb(:login)
+        logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
+        next erb(config.custom_templates[:login] || :login)
       else
         raise ArgumentError, "Unknown suggestion value for DownstreamAuthorization denial; #{e.as_log.inspect}"
       end
@@ -204,7 +223,7 @@ module Himari
 
       # do upstream auth
       authn = Himari::Services::UpstreamAuthentication.from_request(request).perform
-      logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: authhash[:uid], provider: authhash[:provider], result: authn.as_log))
+      logger&.info(Himari::LogLine.new('authentication allowed', req: request_as_log, allowed: authn.authn_result.allowed, uid: authhash[:uid], provider: authhash[:provider], result: authn.as_log, existing_session: current_user&.as_log))
       raise unless authn.authn_result.allowed # sanity check
 
       given_back_to = request.env['omniauth.params']&.fetch('back_to', nil)
@@ -219,10 +238,14 @@ module Himari
       end || '/'
 
       session.destroy
-      session[:session_data] = authn.session_data
+
+      new_session = authn.session_data
+      config.storage.put_session(new_session)
+      session[:himari_session] = new_session.format.to_s
+
       redirect back_to
     rescue Himari::Services::UpstreamAuthentication::UnauthorizedError => e
-      logger&.warn(Himari::LogLine.new('authentication denied', req: request_as_log, err: e.class.inspect, allowed: e.result.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: e.as_log))
+      logger&.warn(Himari::LogLine.new('authentication denied', req: request_as_log, err: e.class.inspect, allowed: e.result.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: e.as_log, existing_session: current_user&.as_log))
       message_human = e.result.authn_result&.user_facing_message
       halt(401, "Unauthorized#{message_human ? "; #{message_human}" : nil}")
     end

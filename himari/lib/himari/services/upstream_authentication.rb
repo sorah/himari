@@ -27,7 +27,7 @@ module Himari
       Result = Struct.new(:claims_result, :authn_result, :session_data) do
         def as_log
           {
-            claims: session_data&.claims,
+            session: session_data&.as_log,
             decision: {
               claims: claims_result&.as_log&.reject{ |k,_v| %i(allowed explicit_deny).include?(k) },
               authentication: authn_result&.as_log,

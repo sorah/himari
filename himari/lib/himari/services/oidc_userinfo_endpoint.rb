@@ -1,4 +1,5 @@
 require 'himari/access_token'
+require 'himari/token_string'
 require 'himari/log_line'
 
 module Himari
@@ -33,7 +34,7 @@ module Himari
           return [404, {'Content-Type' => 'application/json'}, ['{"error": "not_found"}']] unless %w(GET POST).include?(@env['REQUEST_METHOD'])
 
           raise InvalidToken unless given_token
-          given_parsed_token = Himari::AccessToken::Format.parse(given_token)
+          given_parsed_token = Himari::AccessToken.parse(given_token)
 
           token = @storage.find_token(given_parsed_token.handle)
           raise InvalidToken unless token
@@ -46,7 +47,7 @@ module Himari
             {'Content-Type' => 'application/json; charset=utf-8'},
             [JSON.pretty_generate(token.claims), "\n"],
           ]
-        rescue InvalidToken, Himari::AccessToken::SecretIncorrect, Himari::AccessToken::InvalidFormat, Himari::AccessToken::TokenExpired => e
+        rescue InvalidToken, Himari::TokenString::SecretIncorrect, Himari::TokenString::InvalidFormat, Himari::TokenString::TokenExpired => e
           @logger&.warn(Himari::LogLine.new('OidcUserinfoEndpoint: invalid_token', req: @env['himari.request_as_log'], err: e.class.inspect, token: token&.as_log))
           [
             401,
