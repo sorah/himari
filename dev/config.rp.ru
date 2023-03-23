@@ -1,72 +1,10 @@
 # config.ru
 require 'open-uri'
 require 'omniauth'
-require 'omniauth-oauth2'
+require 'omniauth-himari'
 require 'sinatra/base'
 require 'rack/session/cookie'
 require 'jwt'
-
-module OmniAuth
-  module Strategies
-    class Himari < OmniAuth::Strategies::OAuth2
-      option :name, 'himari'
-      option(:client_options, {
-        site: 'http://localhost:3000',
-        authorize_url: '/oidc/authorize',
-        token_url: '/public/oidc/token',
-      })
-      option :pkce, true
-
-      uid { raw_info['sub'] }
-
-      info do
-        { name: raw_info['preferred_username'] }
-      end
-
-      extra do
-        id_token = access_token['id_token']
-        token_payload = JWT.decode(
-          id_token,
-          nil,
-          true,
-          algorithms: jwks.map { |k| k[:alg] }.compact.uniq,
-          jwks: jwks,
-          verify_aud: true,
-          aud: options.client_id,
-          verify_iss: true,
-          iss: options.client_options[:site],
-          verify_expiration: true,
-        )
-
-        {
-          id_info: token_payload,
-          raw_info: raw_info,
-          id_token_raw: id_token,
-        }
-      end
-
-      def callback_url
-        options[:redirect_uri] || (full_host + callback_path) # https://github.com/omniauth/omniauth-oauth2/pull/142
-      end
-
-      def jwks
-        @jwks ||= JWT::JWK::Set.new(JSON.parse(URI.open("#{options.client_options[:site]}/public/jwks", 'r', &:read))).tap do |set|
-          set.filter! { |k| k[:use] == 'sig' }
-        end
-      end
-
-      def raw_info
-        @raw_info ||= access_token.get('/public/oidc/userinfo').parsed
-      end
-
-      def authorize_params
-        super.tap do |params|
-          params[:scope] = 'openid'
-        end
-      end
-    end
-  end
-end
 
 class App < Sinatra::Base
   set :protection, use: %i(authenticity_token), except: %i(remote_token)
@@ -97,11 +35,10 @@ use(Rack::Session::Cookie,
 use OmniAuth::Builder do
   provider :himari, {
     name: :himari,
+    site: 'http://localhost:3000',
     client_id: 'myclient1',
     client_secret: 'himitsudayo1',
-    client_options: {
-
-    }
+    use_userinfo: true,
   }
 end
 

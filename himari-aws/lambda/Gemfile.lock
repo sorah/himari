@@ -13,6 +13,8 @@ PATH
   remote: ../../omniauth-himari
   specs:
     omniauth-himari (0.1.0)
+      faraday
+      oauth2
       omniauth
       omniauth-oauth2
 
