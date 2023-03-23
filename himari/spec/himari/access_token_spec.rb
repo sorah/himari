@@ -8,7 +8,7 @@ RSpec.describe Himari::AccessToken do
   describe Himari::AccessToken::Format do
     describe ".parse" do
       let(:given_token) { nil }
-      subject(:format) { described_class.parse(given_token) }
+      subject(:format) { Himari::AccessToken.parse(given_token) }
       subject { [format.handle, format.secret] }
 
       context "with nominal" do
@@ -38,7 +38,7 @@ RSpec.describe Himari::AccessToken do
     end
 
     describe "#to_s" do
-      subject { described_class.new(handle: 'abc', secret: 'def').to_s }
+      subject { described_class.new(header: 'hmat', handle: 'abc', secret: 'def').to_s }
       it { is_expected.to eq('hmat.abc.def') }
     end
   end
@@ -55,7 +55,7 @@ RSpec.describe Himari::AccessToken do
     end
 
     specify do
-      parse = Himari::AccessToken::Format.parse(subject.format.to_s)
+      parse = Himari::AccessToken.parse(subject.format.to_s)
       expect(parse.handle).to eq(subject.handle)
       expect(parse.secret).to eq(subject.secret)
     end

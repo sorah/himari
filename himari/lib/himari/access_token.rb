@@ -1,32 +1,11 @@
-require 'securerandom'
-require 'base64'
-require 'digest/sha2'
-require 'rack/utils'
-
 require 'rack/oauth2'
 require 'openid_connect'
 
+require 'himari/token_string'
+
 module Himari
   class AccessToken
-    class SecretMissing < StandardError; end
-    class SecretIncorrect < StandardError; end
-    class TokenExpired < StandardError; end
-    class InvalidFormat < StandardError; end
-
-    Format = Struct.new(:handle, :secret, keyword_init: true) do
-      HEADER = 'hmat'
-
-      def self.parse(str)
-        parts = str.split('.')
-        raise InvalidFormat unless parts.size == 3
-        raise InvalidFormat unless parts[0] == HEADER
-        new(handle: parts[1], secret: parts[2])
-      end
-
-      def to_s
-        "#{HEADER}.#{handle}.#{secret}"
-      end
-    end
+    include TokenString
 
     class Bearer < Rack::OAuth2::AccessToken::Bearer
       def token_response(options = {})
@@ -36,13 +15,12 @@ module Himari
       end
     end
 
-    def self.make(**kwargs)
-      new(
-        handle: SecureRandom.urlsafe_base64(32),
-        secret: SecureRandom.urlsafe_base64(48),
-        expiry: Time.now.to_i + 3600,
-        **kwargs
-      )
+    def self.magic_header
+      'hmat'
+    end
+
+    def self.default_lifetime
+      3600
     end
 
     # @param authz [Himari::AuthorizationCode]
@@ -65,30 +43,6 @@ module Himari
 
     attr_reader :handle, :client_id, :claims, :expiry
 
-    def secret
-      raise SecretMissing unless @secret
-      @secret
-    end
-
-    def secret_hash
-      @secret_hash ||= Base64.urlsafe_encode64(Digest::SHA384.digest(secret), padding: false)
-    end
-
-    def verify_secret!(given_secret)
-      dgst = Base64.urlsafe_decode64(secret_hash)
-      given_dgst = Digest::SHA384.digest(given_secret)
-      raise SecretIncorrect unless Rack::Utils.secure_compare(dgst, given_dgst)
-      @secret = given_secret
-      true
-    end
-
-    def verify_expiry!(now = Time.now)
-      raise TokenExpired if @expiry <= now.to_i
-    end
-
-    def format
-      Format.new(handle: handle, secret: secret)
-    end
 
     def to_bearer
       Bearer.new(

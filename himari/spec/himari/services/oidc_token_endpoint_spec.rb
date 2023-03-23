@@ -138,7 +138,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       expect(body[:id_token]).to be_nil
       at = body[:access_token]
       expect(at).to be_a(String)
-      parse = Himari::AccessToken::Format.parse(at)
+      parse = Himari::AccessToken.parse(at)
       token = storage.find_token(parse.handle)
       expect(token).not_to be_nil
       expect(token.verify_secret!(parse.secret)).to eq(true)
