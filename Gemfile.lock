@@ -18,6 +18,15 @@ PATH
       rack-protection
       sinatra (>= 3.0)
 
+PATH
+  remote: omniauth-himari
+  specs:
+    omniauth-himari (0.1.0)
+      faraday
+      oauth2
+      omniauth
+      omniauth-oauth2
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -201,7 +210,7 @@ DEPENDENCIES
   himari!
   himari-aws!
   nokogiri
-  omniauth-oauth2
+  omniauth-himari!
   puma
   rack-session
   rack-test

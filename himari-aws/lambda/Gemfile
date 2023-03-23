@@ -4,6 +4,7 @@ root = File.join('..', '..')
 
 gem 'himari', path: File.join(root, 'himari')
 gem 'himari-aws', path: File.join(root, 'himari-aws')
+gem 'omniauth-himari', path: File.join(root, 'omniauth-himari')
 gem 'nokogiri'
 #gem 'apigatewayv2_rack', git: 'https://github.com/sorah/apigatewayv2_rack'
 gem 'apigatewayv2_rack', '>= 0.1.3'
