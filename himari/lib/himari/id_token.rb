@@ -7,11 +7,12 @@ module Himari
   class IdToken
     # @param authz [Himari::AuthorizationCode]
     def self.from_authz(authz, **kwargs)
+      
       new(
         claims: authz.claims,
         client_id: authz.client_id,
         nonce: authz.nonce,
-        lifetime: authz.lifetime,
+        lifetime: authz.lifetime.is_a?(Integer) ? authz.lifetime : authz.lifetime.id_token, # compat
         **kwargs
       )
     end

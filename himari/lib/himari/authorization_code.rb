@@ -1,4 +1,5 @@
 require 'digest/sha2'
+require 'himari/lifetime_value'
 
 module Himari
   authz_attrs = %i(
@@ -23,10 +24,23 @@ module Himari
       )
     end
 
+    alias _lifetime_raw lifetime
+    private :_lifetime_raw
+    def lifetime
+      case _lifetime_raw
+      when Hash
+        self.lifetime = LifetimeValue.new(**_lifetime_raw)
+      when Integer #compat
+        self.lifetime = LifetimeValue.from_integer(_lifetime_raw)
+      else
+        _lifetime_raw
+      end
+    end
+
     alias _expiry_raw expiry
     private :_expiry_raw
     def expiry
-      self._expiry_raw || (self.expiry = created_at + (lifetime || 900))
+      self._expiry_raw || (self.expiry = created_at + (lifetime&.code || 900))
     end
 
     def valid_redirect_uri?(given_uri)
@@ -68,7 +82,7 @@ module Himari
         nonce: nonce,
         openid: openid,
         created_at: created_at.to_i,
-        lifetime: lifetime.to_i,
+        lifetime: lifetime.as_log,
         expiry: expiry.to_i,
         pkce: pkce?,
         pkce_method: code_challenge_method,
@@ -87,7 +101,7 @@ module Himari
         code_challenge: code_challenge,
         code_challenge_method: code_challenge_method,
         created_at: created_at.to_i,
-        lifetime: lifetime.to_i,
+        lifetime: lifetime.as_json,
         expiry: expiry.to_i,
       }
     end

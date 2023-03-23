@@ -1,4 +1,5 @@
 require 'himari/decisions/base'
+require 'himari/lifetime_value'
 
 module Himari
   module Decisions
@@ -23,22 +24,31 @@ module Himari
         super()
         @claims = claims
         @allowed_claims = allowed_claims
-        @lifetime = lifetime
+        self.lifetime = lifetime
       end
 
       attr_reader :claims, :allowed_claims
-      attr_accessor :lifetime
+      attr_reader :lifetime
+
+      def lifetime=(x)
+        case x
+        when LifetimeValue
+          @lifetime = x
+        else
+          @lifetime = LifetimeValue.from_integer(x)
+        end
+      end
 
       def to_evolve_args
         {
           claims: @claims.dup,
           allowed_claims: @allowed_claims.dup,
-          lifetime: @lifetime&.to_i,
+          lifetime: @lifetime,
         }
       end
 
       def as_log
-        to_h.merge(claims: output_claims, lifetime: @lifetime&.to_i)
+        to_h.merge(claims: output_claims, lifetime: @lifetime.to_h)
       end
 
       def output_claims

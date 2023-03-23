@@ -8,12 +8,14 @@ require 'himari/storages/memory'
 require 'himari/authorization_code'
 require 'himari/id_token'
 require 'himari/access_token'
+require 'himari/lifetime_value'
 
 RSpec.describe Himari::Services::OidcTokenEndpoint do
   include Rack::Test::Methods
 
+  let(:lifetime_value) { Himari::LifetimeValue.new(id_token: 3600, access_token: 3600) }
   let(:scope_openid) { false }
-  let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid) }
+  let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, lifetime: lifetime_value) }
 
   let(:client) do
     double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}).tap do |x|
@@ -101,7 +103,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
   context "using PKCE" do
     let(:code_verifier) { 'kakunin' }
     let(:code_challenge) { Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier), padding: false) }
-    let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: true, code_challenge: code_challenge, code_challenge_method: 'S256') }
+    let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: true, code_challenge: code_challenge, code_challenge_method: 'S256', lifetime: lifetime_value) }
 
     context "without verifier" do
       it "returns 400" do

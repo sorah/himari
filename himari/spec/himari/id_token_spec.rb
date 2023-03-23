@@ -6,7 +6,7 @@ RSpec.describe Himari::IdToken do
   let(:nonce) { nil }
   let(:access_token) { nil }
 
-  let(:authz) { double('authz', claims: {sub: 'chihiro'}, client_id: 'testclient', nonce: nonce, lifetime: 900) }
+  let(:authz) { double('authz', claims: {sub: 'chihiro'}, client_id: 'testclient', nonce: nonce, lifetime: double('lifetimevalue', id_token: 456)) }
   let(:id_token) { described_class.from_authz(authz, issuer: 'https://test.invalid', signing_key: double('key', hash_function: Digest::SHA256), access_token: access_token, time: t) }
 
   describe "#final_claims" do
@@ -17,7 +17,7 @@ RSpec.describe Himari::IdToken do
         aud: 'testclient',
         iat: t.to_i,
         nbf: t.to_i,
-        exp: t.to_i + 900,
+        exp: t.to_i + 456,
       )
     end
 

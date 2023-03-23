@@ -64,7 +64,7 @@ module Himari
               # :nocov:
             end
 
-            token = AccessToken.from_authz(authz) # TODO: lifetime
+            token = AccessToken.from_authz(authz)
             @storage.put_token(token)
             res.access_token = token.to_bearer
 

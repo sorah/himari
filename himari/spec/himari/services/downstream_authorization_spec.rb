@@ -40,7 +40,8 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
       expect(client).to receive(:ok)
       expect(result.client).to eq(client)
       expect(result.claims).to eq(claims: 2, new_claims: 2)
-      expect(result.lifetime).to eq(12345)
+      expect(result.lifetime.access_token).to eq(12345)
+      expect(result.lifetime.id_token).to eq(12345)
       expect(result.authz_result.allowed).to eq(true)
     end
   end

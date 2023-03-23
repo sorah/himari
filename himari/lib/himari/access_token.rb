@@ -28,6 +28,7 @@ module Himari
       make(
         client_id: authz.client_id,
         claims: authz.claims,
+        lifetime: authz.lifetime.access_token,
       )
     end
 

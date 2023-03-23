@@ -71,6 +71,9 @@ use(Himari::Middlewares::ClaimsRule, name: 'details') do |context, decision|
   decision.initialize_claims!
   decision.claims
 
+  # session lifetime
+  decision.lifetime = 900
+
   # databag (data not exposed to clients)
   decision.user_data
 
@@ -146,6 +149,9 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
 
   # lifetime of access token and ID token
   decision.lifetime = 3600 * 12
+  # or configure individually
+  decision.lifetime.access_token = 86400
+  decision.lifetime.id_token = 900
 
   # Rule must always call one of the followings
   next decision.deny! # explicit deny, stop processing
