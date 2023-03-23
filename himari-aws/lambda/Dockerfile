@@ -4,8 +4,13 @@ RUN yum install -y gcc gcc-c++ make pkg-config git
 
 COPY ./himari/himari.gemspec ${LAMBDA_TASK_ROOT}/app/himari/himari.gemspec
 COPY ./himari/lib/himari/version.rb ${LAMBDA_TASK_ROOT}/app/himari/lib/himari/version.rb
+
 COPY ./himari-aws/himari-aws.gemspec ${LAMBDA_TASK_ROOT}/app/himari-aws/himari-aws.gemspec
 COPY ./himari-aws/lib/himari/aws/version.rb ${LAMBDA_TASK_ROOT}/app/himari-aws/lib/himari/aws/version.rb
+
+COPY ./omniauth-himari/omniauth-himari.gemspec ${LAMBDA_TASK_ROOT}/app/omniauth-himari/omniauth-himari.gemspec
+COPY ./omniauth-himari/lib/omniauth-himari/version.rb ${LAMBDA_TASK_ROOT}/app/omniauth-himari/lib/omniauth-himari/version.rb
+
 COPY ./himari-aws/lambda/Gemfile* ${LAMBDA_TASK_ROOT}/app/himari-aws/lambda/
 WORKDIR ${LAMBDA_TASK_ROOT}/app
 
