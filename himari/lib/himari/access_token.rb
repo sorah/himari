@@ -39,7 +39,7 @@ module Himari
     def self.make(**kwargs)
       new(
         handle: SecureRandom.urlsafe_base64(32),
-        secret: SecureRandom.urlsafe_base64(32),
+        secret: SecureRandom.urlsafe_base64(48),
         expiry: Time.now.to_i + 3600,
         **kwargs
       )
@@ -99,7 +99,7 @@ module Himari
 
     def as_log
       {
-        handle_dgst: Digest::SHA256.hexdigest(handle),
+        handle: handle,
         client_id: client_id,
         claims: claims,
         expiry: expiry,

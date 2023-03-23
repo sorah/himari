@@ -10,6 +10,7 @@ module Himari
       @redirect_uris = redirect_uris
       @preferred_key_group = preferred_key_group
 
+      raise ArgumentError, "name starts with '_' is reserved" if @name&.start_with?('_')
       raise ArgumentError, "either secret or secret_hash must be present" if !@secret && !@secret_hash
     end
 
