@@ -53,7 +53,7 @@ module Himari
 
         @current_user = token
       rescue InvalidSessionToken, Himari::TokenString::Error => e
-        logger&.warn(Himari::LogLine.new('invalid session token given', req: request_as_log, err: e.class.inspect, result: e.as_log))
+        logger&.warn(Himari::LogLine.new('invalid session token given', req: request_as_log, err: e.class.inspect))
         session.delete(:himari_session)
         nil
       end
