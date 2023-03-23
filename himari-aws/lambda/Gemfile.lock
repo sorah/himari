@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/sorah/apigatewayv2_rack
-  revision: e81de23e24bcc1cec25cdbee09d1f54512aec48f
+  revision: 2df61facf7dd34574bf20eda3719d26d9d9ec24e
   specs:
     apigatewayv2_rack (0.1.3)
       rack
