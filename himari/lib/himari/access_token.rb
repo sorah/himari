@@ -13,18 +13,18 @@ module Himari
     class TokenExpired < StandardError; end
     class InvalidFormat < StandardError; end
 
-    Format = Struct.new(:handler, :secret, keyword_init: true) do
+    Format = Struct.new(:handle, :secret, keyword_init: true) do
       HEADER = 'hmat'
 
       def self.parse(str)
         parts = str.split('.')
         raise InvalidFormat unless parts.size == 3
         raise InvalidFormat unless parts[0] == HEADER
-        new(handler: parts[1], secret: parts[2])
+        new(handle: parts[1], secret: parts[2])
       end
 
       def to_s
-        "#{HEADER}.#{handler}.#{secret}"
+        "#{HEADER}.#{handle}.#{secret}"
       end
     end
 
@@ -38,8 +38,8 @@ module Himari
 
     def self.make(**kwargs)
       new(
-        handler: SecureRandom.urlsafe_base64(32),
-        secret: SecureRandom.urlsafe_base64(32),
+        handle: SecureRandom.urlsafe_base64(32),
+        secret: SecureRandom.urlsafe_base64(48),
         expiry: Time.now.to_i + 3600,
         **kwargs
       )
@@ -53,8 +53,8 @@ module Himari
       )
     end
 
-    def initialize(handler:, client_id:, claims:, expiry:, secret: nil, secret_hash: nil)
-      @handler = handler
+    def initialize(handle:, client_id:, claims:, expiry:, secret: nil, secret_hash: nil)
+      @handle = handle
       @client_id = client_id
       @claims = claims
       @expiry = expiry
@@ -63,7 +63,7 @@ module Himari
       @secret_hash = secret_hash
     end
 
-    attr_reader :handler, :client_id, :claims, :expiry
+    attr_reader :handle, :client_id, :claims, :expiry
 
     def secret
       raise SecretMissing unless @secret
@@ -87,7 +87,7 @@ module Himari
     end
 
     def format
-      Format.new(handler: handler, secret: secret)
+      Format.new(handle: handle, secret: secret)
     end
 
     def to_bearer
@@ -99,7 +99,7 @@ module Himari
 
     def as_log
       {
-        handler_dgst: Digest::SHA256.hexdigest(handler),
+        handle: handle,
         client_id: client_id,
         claims: claims,
         expiry: expiry,
@@ -108,7 +108,7 @@ module Himari
 
     def as_json
       {
-        handler: handler,
+        handle: handle,
         secret_hash: secret_hash,
         client_id: client_id,
         claims: claims,

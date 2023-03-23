@@ -35,7 +35,7 @@ module Himari
           raise InvalidToken unless given_token
           given_parsed_token = Himari::AccessToken::Format.parse(given_token)
 
-          token = @storage.find_token(given_parsed_token.handler)
+          token = @storage.find_token(given_parsed_token.handle)
           raise InvalidToken unless token
           token.verify_expiry!()
           token.verify_secret!(given_parsed_token.secret)

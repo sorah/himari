@@ -9,7 +9,7 @@ RSpec.describe Himari::AccessToken do
     describe ".parse" do
       let(:given_token) { nil }
       subject(:format) { described_class.parse(given_token) }
-      subject { [format.handler, format.secret] }
+      subject { [format.handle, format.secret] }
 
       context "with nominal" do
         let(:given_token) { 'hmat.abc.def' }
@@ -38,7 +38,7 @@ RSpec.describe Himari::AccessToken do
     end
 
     describe "#to_s" do
-      subject { described_class.new(handler: 'abc', secret: 'def').to_s }
+      subject { described_class.new(handle: 'abc', secret: 'def').to_s }
       it { is_expected.to eq('hmat.abc.def') }
     end
   end
@@ -56,21 +56,21 @@ RSpec.describe Himari::AccessToken do
 
     specify do
       parse = Himari::AccessToken::Format.parse(subject.format.to_s)
-      expect(parse.handler).to eq(subject.handler)
+      expect(parse.handle).to eq(subject.handle)
       expect(parse.secret).to eq(subject.secret)
     end
   end
 
   describe "#verify_secret!" do
     context 'with secret' do
-      subject { described_class.new(handler: 'abc', secret: 'himitsu', client_id: 'client', claims: {sub: 'chihiro'}, expiry: Time.now.to_i+86400) }
+      subject { described_class.new(handle: 'abc', secret: 'himitsu', client_id: 'client', claims: {sub: 'chihiro'}, expiry: Time.now.to_i+86400) }
 
       specify { expect(subject.verify_secret!('himitsu')).to eq(true) }
       specify { expect { subject.verify_secret!('incorrect') }.to raise_error(Himari::AccessToken::SecretIncorrect) }
     end
 
     context 'with secret_hash' do
-      subject { described_class.new(handler: 'abc', secret_hash: Base64.urlsafe_encode64(Digest::SHA384.digest('himitsu')), client_id: 'client', claims: {sub: 'chihiro'}, expiry: Time.now.to_i+86400) }
+      subject { described_class.new(handle: 'abc', secret_hash: Base64.urlsafe_encode64(Digest::SHA384.digest('himitsu')), client_id: 'client', claims: {sub: 'chihiro'}, expiry: Time.now.to_i+86400) }
 
       specify { expect(subject.verify_secret!('himitsu')).to eq(true) }
       specify { expect { subject.verify_secret!('incorrect') }.to raise_error(Himari::AccessToken::SecretIncorrect) }
@@ -78,7 +78,7 @@ RSpec.describe Himari::AccessToken do
   end
 
   describe "#verify_expiry!" do
-    subject { described_class.new(handler: 'abc', secret: 'himitsu', client_id: 'client', claims: {sub: 'chihiro'}, expiry: expiry) }
+    subject { described_class.new(handle: 'abc', secret: 'himitsu', client_id: 'client', claims: {sub: 'chihiro'}, expiry: expiry) }
 
     context "with future expiry" do
       let(:expiry) { Time.now.to_i + 86400 }

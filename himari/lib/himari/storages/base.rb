@@ -23,21 +23,22 @@ module Himari
         delete('authz', code)
       end
 
-      def find_token(handler)
-        content = read('token', handler)
+      def find_token(handle)
+        content = read('token', handle)
+        content[:handle] = content.delete(:handle) if content.key?(:handler) # compat
         content && AccessToken.new(**content)
       end
 
       def put_token(token, overwrite: false)
-        write('token', token.handler, token.as_json, overwrite: overwrite)
+        write('token', token.handle, token.as_json, overwrite: overwrite)
       end
 
       def delete_token(token)
-        delete_authorization_by_token(token.handler)
+        delete_authorization_by_token(token.handle)
       end
 
-      def delete_token_by_handler(handler)
-        delete('token', handler)
+      def delete_token_by_handle(handle)
+        delete('token', handle)
       end
 
 

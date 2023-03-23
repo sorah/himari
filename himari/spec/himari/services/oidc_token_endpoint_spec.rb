@@ -139,7 +139,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       at = body[:access_token]
       expect(at).to be_a(String)
       parse = Himari::AccessToken::Format.parse(at)
-      token = storage.find_token(parse.handler)
+      token = storage.find_token(parse.handle)
       expect(token).not_to be_nil
       expect(token.verify_secret!(parse.secret)).to eq(true)
       expect(token.claims).to eq(sub: 'chihiro')
