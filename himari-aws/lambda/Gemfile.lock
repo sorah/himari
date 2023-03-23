@@ -10,6 +10,13 @@ PATH
       sinatra (>= 3.0)
 
 PATH
+  remote: ../../omniauth-himari
+  specs:
+    omniauth-himari (0.1.0)
+      omniauth
+      omniauth-oauth2
+
+PATH
   remote: ..
   specs:
     himari-aws (0.2.0)
@@ -203,6 +210,7 @@ DEPENDENCIES
   omniauth-github
   omniauth-gitlab
   omniauth-google-oauth2
+  omniauth-himari!
   omniauth-oauth2
   omniauth-saml
   secure_headers

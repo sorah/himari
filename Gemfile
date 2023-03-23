@@ -3,8 +3,8 @@ source "https://rubygems.org"
 
 gemspec path: 'himari'
 gemspec path: 'himari-aws'
+gemspec path: 'omniauth-himari'
 
-gem 'omniauth-oauth2'
 gem 'rack-session'
 gem 'rackup'
 gem 'puma'
