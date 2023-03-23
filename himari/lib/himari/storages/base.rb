@@ -1,5 +1,6 @@
 require 'himari/authorization_code'
 require 'himari/access_token'
+require 'himari/session_data'
 
 module Himari
   module Storages
@@ -41,6 +42,22 @@ module Himari
         delete('token', handle)
       end
 
+      def find_session(handle)
+        content = read('session', handle)
+        content && SessionData.new(**content)
+      end
+
+      def put_session(session, overwrite: false)
+        write('session', session.handle, session.as_json, overwrite: overwrite)
+      end
+
+      def delete_session(session)
+        delete_session_by_handle(session.handle)
+      end
+
+      def delete_session_by_handle(handle)
+        delete('session', handle)
+      end
 
       private def write(kind, key, content, overwrite: false)
         raise NotImplementedError

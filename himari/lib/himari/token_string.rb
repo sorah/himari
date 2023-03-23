@@ -5,10 +5,11 @@ require 'rack/utils'
 
 module Himari
   module TokenString
-    class SecretMissing < StandardError; end
-    class SecretIncorrect < StandardError; end
-    class TokenExpired < StandardError; end
-    class InvalidFormat < StandardError; end
+    class Error < StandardError; end
+    class SecretMissing < Error; end
+    class SecretIncorrect < Error; end
+    class TokenExpired < Error; end
+    class InvalidFormat < Error; end
 
     module ClassMethods
       def magic_header

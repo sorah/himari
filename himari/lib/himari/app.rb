@@ -6,8 +6,11 @@ require 'himari/version'
 
 require 'himari/log_line'
 
+require 'himari/token_string'
 require 'himari/provider_chain'
+
 require 'himari/authorization_code'
+require 'himari/session_data'
 
 require 'himari/middlewares/client'
 require 'himari/middlewares/config'
@@ -34,9 +37,25 @@ module Himari
 
     ProviderCandidate = Struct.new(:name, :button, :action, keyword_init: true)
 
+    class InvalidSessionToken < StandardError; end
+
     helpers do
       def current_user
-        session[:session_data]
+        return @current_user if defined? @current_user
+        given_token = session[:himari_session]
+        return nil unless given_token
+
+        given_parsed_token = Himari::SessionData.parse(given_token)
+
+        token = config.storage.find_session(given_parsed_token.handle)
+        raise InvalidSessionToken, "no session found in storage (possibly expired)" unless token
+        token.verify!(secret: given_parsed_token.secret)
+
+        @current_user = token
+      rescue InvalidSessionToken, Himari::TokenString::Error => e
+        logger&.warn(Himari::LogLine.new('invalid session token given', req: request_as_log, err: e.class.inspect, result: e.as_log))
+        session.delete(:himari_session)
+        nil
       end
 
       def config
@@ -219,7 +238,11 @@ module Himari
       end || '/'
 
       session.destroy
-      session[:session_data] = authn.session_data
+
+      new_session = authn.session_data
+      config.storage.put_session(new_session)
+      session[:himari_session] = new_session.format.to_s
+
       redirect back_to
     rescue Himari::Services::UpstreamAuthentication::UnauthorizedError => e
       logger&.warn(Himari::LogLine.new('authentication denied', req: request_as_log, err: e.class.inspect, allowed: e.result.authn_result.allowed, uid: request.env.fetch('omniauth.auth')[:uid], provider: request.env.fetch('omniauth.auth')[:provider], result: e.as_log, existing_session: current_user&.as_log))
