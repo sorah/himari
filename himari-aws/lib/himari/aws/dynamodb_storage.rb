@@ -8,12 +8,16 @@ module Himari
 
       # @param client [Aws::DynamoDB::Client]
       # @param table_name [String] name of DynamoDB table with hash=pk/range=sk key.
-      def initialize(client: ::Aws::DynamoDB::Client.new, table_name:)
+      # @param consistent_read [Boolean] use consitent read when querying. default to true.
+      def initialize(client: ::Aws::DynamoDB::Client.new, table_name:, consistent_read: true)
         @client = client
         @table_name = table_name
+        @consistent_read = consistent_read
       end
 
       attr_reader :client, :table_name
+
+      def consistent_read?; !!@consistent_read; end
 
       private def write(kind, key, content, overwrite: false)
         pk = "storage:#{kind}:#{key}"
@@ -50,6 +54,7 @@ module Himari
           limit: 1,
           key_condition_expression: 'pk = :pk AND sk = :sk',
           expression_attribute_values: {":pk" => pk, ":sk" => pk},
+          consistent_read: consistent_read?,
         ).items.first
 
         return nil unless item
