@@ -11,7 +11,85 @@ gem 'omniauth-himari'
 
 ## Usage
 
-TODO: Write usage instructions here
+### Setup
+
+```ruby
+use OmniAuth::Builder do
+  provider :himari, {
+    site: 'https://himari.example.invalid',
+    client_id: '...',
+    client_secret: '...',
+
+    # verify_options: { ... } # JWT.decode verify options override
+    # verify_at_hash: true, # Verify at_hash returned in ID token
+
+    # use_userinfo: false # force use of userinfo endpoint for raw_info
+    # jwks_url: '...' # JWKs url to override (default=/public/jwks)
+
+    # user_agent: '...' # user-agent to send (default=OmniAuthHimari/X.Y.Z)
+
+    ## omniauth-oauth2 common strategy options
+    # client_options: { ... },
+    # pkce: true,
+  }
+end
+```
+
+### Auth Hash
+
+```json
+{
+  "provider": "himari",
+  "uid": "id_claim.sub",
+  "info": {
+    "name": "name || sub",
+    "nickname": "preferred_username",
+    "email": "email",
+    "first_name": "given_name",
+    "last_name": "family_name",
+    "image": "picture"
+  },
+  "credentials": {
+    "token": "access_token",
+    "expires_at": 42,
+    "expires": true,
+    "id_token": "id_token"
+  },
+  "extra": {
+    "userinfo_used": false,
+    "id_token": {
+      "claims": {
+        "sub": "sub",
+        "name": "name",
+        "preferred_username": "preferred_username",
+        "iss": "https://himari.example.invalid",
+        "aud": "...",
+        "iat": 1679595201,
+        "nbf": 1679595201,
+        "exp": 1679598801,
+        "at_hash": "..."
+      },
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "..."
+      }
+    },
+    "raw_info": {
+      "sub": "sub",
+      "name": "name",
+      "preferred_username": "preferred_username",
+      "iss": "https://himari.example.invalid",
+      "aud": "...",
+      "iat": 1679595201,
+      "nbf": 1679595201,
+      "exp": 1679598801,
+      "at_hash": "..."
+    }
+  }
+}
+```
+
 
 ## Development
 

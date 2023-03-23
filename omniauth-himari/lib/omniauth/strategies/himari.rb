@@ -16,9 +16,10 @@ module OmniAuth
 
       option :client_options, {}
       option :pkce, true
-      option :verify_at_hash, true
 
       option :verify_options, {}
+      option :verify_at_hash, true
+
       option :use_userinfo, false
 
       option :jwks_url, nil
