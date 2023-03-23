@@ -141,7 +141,7 @@ module Himari
         ).call(env)
       else
         logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
-        erb config.custom_templates[:login] || :login
+        erb(config.custom_templates[:login] || :login)
       end
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
@@ -153,7 +153,7 @@ module Himari
         # do nothing
       when :reauthenticate
         logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate', req: request_as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
-        next erb(:login)
+        next erb(config.custom_templates[:login] || :login)
       else
         raise ArgumentError, "Unknown suggestion value for DownstreamAuthorization denial; #{e.as_log.inspect}"
       end
