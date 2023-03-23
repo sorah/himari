@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/sorah/apigatewayv2_rack
-  revision: 3fc4b4c6ed0ea7a034132b625f826aee7470d513
+  revision: e81de23e24bcc1cec25cdbee09d1f54512aec48f
   specs:
     apigatewayv2_rack (0.1.3)
       rack
@@ -49,8 +49,8 @@ GEM
     aes_key_wrap (1.1.0)
     attr_required (1.0.1)
     aws-eventstream (1.2.0)
-    aws-partitions (1.732.0)
-    aws-sdk-core (3.170.1)
+    aws-partitions (1.733.0)
+    aws-sdk-core (3.171.0)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
       aws-sigv4 (~> 1.5)
