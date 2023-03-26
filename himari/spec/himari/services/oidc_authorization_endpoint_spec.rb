@@ -42,6 +42,23 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
     end
   end
 
+  context "with prompt=login" do
+    it "raises ReauthenticationRequired" do
+      expect {
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=login'
+      }.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired)
+    end
+  end
+
+    context "with prompt=none+login" do
+    it "raises ReauthenticationRequired" do
+      get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=none+login'
+      expect(last_response.status).to eq(302)
+      error = Addressable::URI.parse(last_response.headers['location']).query_values['error']
+      expect(error).to eq('invalid_request')
+    end
+  end
+
   context "with valid request" do
     it "returns a grant code" do
       get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
@@ -78,6 +95,16 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(authz.openid).to eq(true)
       expect(authz.code_challenge).to eq(code_challenge)
       expect(authz.code_challenge_method).to eq('S256')
+    end
+  end
+
+  context "with prompt=none" do
+    it "returns a grant code" do
+      get "/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=none"
+      expect(last_response.status).to eq(302)
+      query = Addressable::URI.parse(last_response.headers['location']).query_values
+      expect(query['state']).to eq('x')
+      expect(query['code']).to be_a(String)
     end
   end
 

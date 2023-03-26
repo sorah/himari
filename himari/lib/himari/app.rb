@@ -71,7 +71,15 @@ module Himari
       end
 
       def known_providers
-        query = Addressable::URI.form_encode(back_to: request.fullpath)
+        back_to = if request.query_string.empty?
+          request.path
+        else
+          Addressable::URI.parse(request.fullpath).tap do |u|
+            u.query_values = u.query_values.reject { |k,_v| k == 'prompt' }
+          end.to_s
+        end
+        query = Addressable::URI.form_encode(back_to: back_to)
+
         config.providers.map do |pr|
           name = pr.fetch(:name)
           ProviderCandidate.new(
@@ -140,6 +148,7 @@ module Himari
         logger&.warn(Himari::LogLine.new('authorize: no client registration found', req: request_as_log, client_id: params[:client_id]))
         next halt 401, 'unknown client' 
       end
+
       if current_user
         # do downstream authz and process oidc request
         decision = Himari::Services::DownstreamAuthorization.from_request(session: current_user, client: client, request: request).perform
@@ -162,6 +171,11 @@ module Himari
         logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
         erb(config.custom_templates[:login] || :login)
       end
+
+    rescue Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired
+      logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate (demanded by oidc request)',  req: request_as_log, session: current_user&.as_log, allowed: decision&.authz_result&.allowed, result: decision&.as_log))
+      next erb(config.custom_templates[:login] || :login)
+
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
 
@@ -171,7 +185,7 @@ module Himari
       when nil
         # do nothing
       when :reauthenticate
-        logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
+        logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate (suggested by decision)', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
         next erb(config.custom_templates[:login] || :login)
       else
         raise ArgumentError, "Unknown suggestion value for DownstreamAuthorization denial; #{e.as_log.inspect}"
@@ -200,7 +214,8 @@ module Himari
     end
     get '/oidc/userinfo', &userinfo_ep
     get '/public/oidc/userinfo', &userinfo_ep
-
+    post '/oidc/userinfo', &userinfo_ep
+    post '/public/oidc/userinfo', &userinfo_ep
 
     jwks_ep = proc do
       Himari::Services::JwksEndpoint.new(
@@ -228,7 +243,11 @@ module Himari
 
       given_back_to = request.env['omniauth.params']&.fetch('back_to', nil)
       back_to = if given_back_to
-        uri = Addressable::URI.parse(given_back_to)
+        uri = begin
+          Addressable::URI.parse(given_back_to)
+        rescue Addressable::URI::InvalidURIError
+          nil
+        end
         if uri && uri.host.nil? && uri.scheme.nil? && uri.path.start_with?('/')
           given_back_to
         else

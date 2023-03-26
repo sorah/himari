@@ -5,6 +5,8 @@ require 'openid_connect'
 module Himari
   module Services
     class OidcAuthorizationEndpoint
+      class ReauthenticationRequired < StandardError; end
+
       SUPPORTED_RESPONSE_TYPES = ['code'] # TODO: share with oidc metadata
 
       # @param authz [Himari::AuthorizationCode] pending (unpersisted) authz data
@@ -39,6 +41,8 @@ module Himari
 
           req.unsupported_response_type! if res.protocol_params_location == :fragment
           req.bad_request!(:request_uri_not_supported, "Request Object is not implemented") if req.request_uri || req.request
+          req.bad_request!(:invalid_request, 'prompt=none should not contain any other value') if req.prompt.include?('none') && req.prompt.any? { |x| x != 'none' }
+          raise ReauthenticationRequired if req.prompt.include?('login') || req.prompt.include?('select_account')
 
           requested_response_types = [*req.response_type]
           unless SUPPORTED_RESPONSE_TYPES.include?(requested_response_types.map(&:to_s).join(' '))
