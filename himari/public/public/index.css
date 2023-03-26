@@ -1,5 +1,7 @@
-body {
+body, button, select {
   font-family: "Segoe UI", Helvetica, sans-serif;
+}
+body {
   font-size: 16px;
   background-color: #FDF7EF;
   text-align: center;
