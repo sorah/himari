@@ -200,7 +200,8 @@ module Himari
     end
     get '/oidc/userinfo', &userinfo_ep
     get '/public/oidc/userinfo', &userinfo_ep
-
+    post '/oidc/userinfo', &userinfo_ep
+    post '/public/oidc/userinfo', &userinfo_ep
 
     jwks_ep = proc do
       Himari::Services::JwksEndpoint.new(
