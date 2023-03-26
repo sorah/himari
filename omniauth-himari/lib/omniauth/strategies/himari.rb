@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'omniauth'
 require 'omniauth-oauth2'
 require 'oauth2'
@@ -122,6 +124,7 @@ module OmniAuth
       def authorize_params
         super.tap do |params|
           params[:scope] = 'openid'
+          params[:prompt] = request.GET['prompt'] if request.GET['prompt']
         end
       end
 
