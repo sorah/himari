@@ -2,6 +2,7 @@ require 'omniauth'
 require 'omniauth-oauth2'
 require 'oauth2'
 require 'digest/sha2'
+require 'jwt'
 
 require 'omniauth-himari/version'
 
