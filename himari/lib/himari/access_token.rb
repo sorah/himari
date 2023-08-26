@@ -44,6 +44,11 @@ module Himari
 
     attr_reader :handle, :client_id, :claims, :expiry
 
+    def userinfo
+      claims.merge(
+        aud: client_id,
+      )
+    end
 
     def to_bearer
       Bearer.new(

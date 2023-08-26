@@ -65,7 +65,10 @@ RSpec.describe Himari::Services::OidcUserinfoEndpoint do
       expect(last_response.content_type).to eq('application/json; charset=utf-8')
       body = JSON.parse(last_response.body, symbolize_names: true)
 
-      expect(body).to eq(sub: 'chihiro')
+      expect(body).to eq(
+        aud: 'clientid',
+        sub: 'chihiro',
+      )
     end
   end
 

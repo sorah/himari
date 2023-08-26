@@ -45,7 +45,7 @@ module Himari
           [
             200,
             {'Content-Type' => 'application/json; charset=utf-8'},
-            [JSON.pretty_generate(token.claims), "\n"],
+            [JSON.pretty_generate(token.userinfo), "\n"],
           ]
         rescue InvalidToken, Himari::TokenString::SecretIncorrect, Himari::TokenString::InvalidFormat, Himari::TokenString::TokenExpired => e
           @logger&.warn(Himari::LogLine.new('OidcUserinfoEndpoint: invalid_token', req: @env['himari.request_as_log'], err: e.class.inspect, token: token&.as_log))
