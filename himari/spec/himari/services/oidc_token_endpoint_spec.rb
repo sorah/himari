@@ -17,8 +17,10 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
   let(:scope_openid) { false }
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, lifetime: lifetime_value) }
 
+  let(:require_pkce) { false }
+
   let(:client) do
-    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}).tap do |x|
+    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}, require_pkce: require_pkce).tap do |x|
       allow(x).to receive(:match_secret?).with('secret').and_return(true)
     end
   end
@@ -126,6 +128,15 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
         expect(last_response.content_type).to match(%r{^application/json})
       end
     end
+
+    context "with valid verifier and when enforced" do
+      let(:require_pkce) { true }
+      it "returns tokens" do
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb', 'code_verifier' => code_verifier
+        expect(last_response.status).to eq(200)
+        expect(last_response.content_type).to match(%r{^application/json})
+      end
+    end
   end
 
   context "with valid request" do
@@ -147,6 +158,14 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       expect(token.claims).to eq(sub: 'chihiro')
 
       expect(storage.find_authorization(authz.code)).to be_nil
+    end
+
+    context "when PKCE enforced" do
+      let(:require_pkce) { true }
+      it "returns 400" do
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
+        expect(last_response.status).to eq(400)
+      end
     end
 
     context "using openid scope" do

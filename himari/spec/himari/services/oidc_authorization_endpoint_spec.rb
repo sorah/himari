@@ -11,7 +11,8 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
   include Rack::Test::Methods
 
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}) }
-  let(:client) { double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], as_log: {client_as_log: 1}) }
+  let(:require_pkce) { false }
+  let(:client) { double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], as_log: {client_as_log: 1}, require_pkce:) }
   let(:storage) { Himari::Storages::Memory.new }
   let(:logger) { Rack::NullLogger.new(nil) }
 
@@ -75,6 +76,16 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(authz.code_challenge).to be_nil
       expect(authz.code_challenge_method).to be_nil
     end
+
+    context "when pkce enforced" do
+      let(:require_pkce) { true }
+      it "returns invalid_request" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+        expect(last_response.status).to eq(302)
+        error = Addressable::URI.parse(last_response.headers['location']).query_values['error']
+        expect(error).to eq('invalid_request')
+      end
+    end
   end
 
   context "with valid request using PKCE" do
@@ -95,6 +106,26 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(authz.openid).to eq(true)
       expect(authz.code_challenge).to eq(code_challenge)
       expect(authz.code_challenge_method).to eq('S256')
+    end
+
+    context "with pkce enforced" do
+      let(:require_pkce) { true }
+
+      it "returns a grant code" do
+        get "/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&code_challenge=#{code_challenge}&code_challenge_method=S256"
+        expect(last_response.status).to eq(302)
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        expect(query['state']).to eq('x')
+        expect(query['code']).to be_a(String)
+
+        authz = storage.find_authorization(query['code'])
+        expect(authz).to be_a(Himari::AuthorizationCode)
+        expect(authz.redirect_uri).to eq('https://rp.invalid/cb')
+        expect(authz.nonce).to eq('nn')
+        expect(authz.openid).to eq(true)
+        expect(authz.code_challenge).to eq(code_challenge)
+        expect(authz.code_challenge_method).to eq('S256')
+      end
     end
   end
 

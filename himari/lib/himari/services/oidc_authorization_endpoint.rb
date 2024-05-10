@@ -58,6 +58,8 @@ module Himari
               @authz.code_challenge = req.code_challenge
               @authz.code_challenge_method = req.code_challenge_method || 'plain'
               next req.bad_request!(:invalid_request, 'Invalid PKCE parameters') unless @authz.pkce_valid_request?
+            elsif @client.require_pkce
+              next req.bad_request!(:invalid_request, 'PKCE is mandatory')
             end
 
             @storage.put_authorization(@authz)

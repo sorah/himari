@@ -57,11 +57,19 @@ module Himari
               @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, expired grant', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
               next req.invalid_grant! 
             end
-            if authz.pkce? && !req.verify_code_verifier!(authz.code_challenge, authz.code_challenge_method)
-              # :nocov:
-              @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, invalid pkce', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
+
+            if authz.pkce?
+              if req.verify_code_verifier!(authz.code_challenge, authz.code_challenge_method)
+                # do nothing
+              else
+                # :nocov:
+                @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, invalid pkce', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
+                next req.invalid_grant!
+                # :nocov:
+              end
+            elsif client.require_pkce
+              @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, pkce is mandatory', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
               next req.invalid_grant!
-              # :nocov:
             end
 
             token = AccessToken.from_authz(authz)
