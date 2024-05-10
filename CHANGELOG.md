@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.5.0] - 2024-05-11
 
 - Userinfo endpoint now returns `aud` claim.
 - Client gains `require_pkce` attribute.
