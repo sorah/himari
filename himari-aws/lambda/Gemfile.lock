@@ -171,6 +171,8 @@ GEM
     public_suffix (5.0.5)
     racc (1.7.3)
     rack (3.0.11)
+    rack-cors (2.0.2)
+      rack (>= 2.0.0)
     rack-oauth2 (2.2.1)
       activesupport
       attr_required
@@ -234,6 +236,7 @@ DEPENDENCIES
   omniauth-himari!
   omniauth-oauth2
   omniauth-saml
+  rack-cors
   secure_headers
 
 BUNDLED WITH
