@@ -1,5 +1,5 @@
 # context must be repository root
-FROM public.ecr.aws/lambda/ruby:3.2 as builder
+FROM public.ecr.aws/lambda/ruby:3.4 as builder
 RUN yum install -y gcc gcc-c++ make pkg-config git
 
 COPY ./himari/himari.gemspec ${LAMBDA_TASK_ROOT}/app/himari/himari.gemspec
@@ -14,6 +14,7 @@ COPY ./omniauth-himari/lib/omniauth-himari/version.rb ${LAMBDA_TASK_ROOT}/app/om
 COPY ./himari-aws/lambda/Gemfile* ${LAMBDA_TASK_ROOT}/app/himari-aws/lambda/
 WORKDIR ${LAMBDA_TASK_ROOT}/app
 
+ENV LANG=C.UTF-8
 ENV BUNDLE_GEMFILE ${LAMBDA_TASK_ROOT}/app/himari-aws/lambda/Gemfile
 ENV BUNDLE_PATH ${LAMBDA_TASK_ROOT}/vendor/bundle
 ENV BUNDLE_DEPLOYMENT 1
@@ -23,7 +24,7 @@ RUN bundle install
 
 COPY . ${LAMBDA_TASK_ROOT}/app
 
-FROM public.ecr.aws/lambda/ruby:3.2
+FROM public.ecr.aws/lambda/ruby:3.4
 
 COPY --from=builder ${LAMBDA_TASK_ROOT}/vendor ${LAMBDA_TASK_ROOT}/vendor
 COPY . ${LAMBDA_TASK_ROOT}/app
@@ -31,6 +32,7 @@ COPY . ${LAMBDA_TASK_ROOT}/app
 COPY ./himari-aws/lambda/entrypoint.rb ${LAMBDA_TASK_ROOT}/himari_lambda_entrypoint.rb
 
 WORKDIR ${LAMBDA_TASK_ROOT}/app
+ENV LANG=C.UTF-8
 ENV BUNDLE_GEMFILE ${LAMBDA_TASK_ROOT}/app/himari-aws/lambda/Gemfile
 ENV BUNDLE_PATH ${LAMBDA_TASK_ROOT}/vendor/bundle
 ENV BUNDLE_DEPLOYMENT 1
