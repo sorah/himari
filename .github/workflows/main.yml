@@ -7,26 +7,11 @@ on:
       - test
 
 jobs:
-  himari-rspec:
-    runs-on: ubuntu-latest
-    name: himari rspec (${{ matrix.ruby }})
-    strategy:
-      matrix:
-        ruby:
-          - '3.2'
-          - '3.3'
-          - '3.4'
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby }}
-        bundler-cache: true
-    - run: bundle exec rspec
-      working-directory: himari
+  test:
+    uses: ./.github/workflows/_test.yml
 
   himari-lambda-image:
+    needs: [test]
     permissions:
       contents: read
       id-token: write
@@ -34,9 +19,9 @@ jobs:
     outputs:
       image-tag: "public.ecr.aws/sorah/himari-lambda:${{ github.sha }}"
     steps:
-      - uses: docker/setup-buildx-action@v2
-      - uses: actions/checkout@v3
-      - uses: aws-actions/configure-aws-credentials@v2
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: "us-west-2"
           role-skip-session-tagging: true
