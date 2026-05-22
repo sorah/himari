@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/services/oidc_userinfo_endpoint'
 require 'himari/storages/memory'
@@ -48,7 +50,7 @@ RSpec.describe Himari::Services::OidcUserinfoEndpoint do
   end
 
   context "with invalid bearer token2" do
-    let(:bearer) { "Bearer #{token.format.to_s}eyJ" }
+    let(:bearer) { "Bearer #{token.format}eyJ" }
 
     it "returns 401" do
       get '/oidc/userinfo'
@@ -57,7 +59,7 @@ RSpec.describe Himari::Services::OidcUserinfoEndpoint do
   end
 
   context "with valid token" do
-    let(:bearer) { "Bearer #{token.format.to_s}" }
+    let(:bearer) { "Bearer #{token.format}" }
 
     it "returns metadata" do
       get '/oidc/userinfo'
@@ -71,5 +73,4 @@ RSpec.describe Himari::Services::OidcUserinfoEndpoint do
       )
     end
   end
-
 end

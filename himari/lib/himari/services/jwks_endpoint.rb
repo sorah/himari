@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   module Services
     class JwksEndpoint
@@ -26,7 +28,7 @@ module Himari
           # https://www.rfc-editor.org/rfc/rfc7517#section-5
           return [404, {'Content-Type' => 'application/json'}, ['{"error": "not_found"}']] unless @env['REQUEST_METHOD'] == 'GET'
 
-          signing_keys = @signing_key_provider.collect()
+          signing_keys = @signing_key_provider.collect
 
           [
             200,

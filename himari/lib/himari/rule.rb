@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   Rule = Struct.new(:name, :block, keyword_init: true) do
     def call(context, decision)

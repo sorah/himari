@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   module Services
     class OidcProviderMetadataEndpoint
@@ -25,7 +27,7 @@ module Himari
         end
 
         def metadata
-          signing_keys = @signing_key_provider.collect()
+          signing_keys = @signing_key_provider.collect
           {
             issuer: @issuer,
             authorization_endpoint: "#{@issuer}/oidc/authorize",

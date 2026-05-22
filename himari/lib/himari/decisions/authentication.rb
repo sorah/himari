@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/decisions/base'
 require 'himari/session_data'
 

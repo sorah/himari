@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/storages/base'
 
 module Himari
@@ -12,6 +14,7 @@ module Himari
       private def write(kind, key, content, overwrite: false)
         path = File.join(kind, key)
         raise Himari::Storages::Base::Conflict if @memory.key?(path)
+
         @memory[path] = JSON.pretty_generate(content)
         nil
       end

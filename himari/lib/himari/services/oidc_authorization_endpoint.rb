@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rack/oauth2'
 require 'digest/sha2'
 require 'openid_connect'
@@ -37,6 +39,7 @@ module Himari
             next req.bad_request!
           end
           raise "[BUG] client.id != authz.cilent_id" unless @authz.client_id == @client.id
+
           res.redirect_uri = req.verify_redirect_uri!(@client.redirect_uris)
 
           req.unsupported_response_type! if res.protocol_params_location == :fragment

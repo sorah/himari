@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   module Decisions
     class Base
@@ -8,8 +10,8 @@ module Himari
         @valid_effects = effects
       end
 
-      def self.valid_effects
-        @valid_effects
+      class << self
+        attr_reader :valid_effects
       end
 
       def initialize
@@ -45,6 +47,7 @@ module Himari
 
       def set_rule_name(rule_name)
         raise "cannot override rule_name" if @rule_name
+
         @rule_name = rule_name
         self
       end
@@ -52,7 +55,8 @@ module Himari
       def decide!(effect, comment = "", user_facing_message: nil, suggest: nil)
         raise DecisionAlreadyMade, "decision can only be made once per rule (#{rule_name})" if @effect
         raise InvalidEffect, "this effect is not valid under this rule. Valid effects: #{self.class.valid_effects.inspect} (#{rule_name})" unless self.class.valid_effects.include?(effect)
-        raise InvalidEffect, "only deny effect can have suggestion" if suggest&& effect != :deny
+        raise InvalidEffect, "only deny effect can have suggestion" if suggest && effect != :deny
+
         @effect = effect
         @effect_comment = comment
         @effect_user_facing_message = user_facing_message

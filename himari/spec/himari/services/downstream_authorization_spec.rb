@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require 'himari/services/downstream_authorization'
@@ -20,7 +22,7 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
   describe "nominal case" do
     let(:authz_rules) do
       [
-        Himari::Rule.new(name: 'allow', block: proc { |c,d|
+        Himari::Rule.new(name: 'allow', block: proc { |c, d|
           c.client.ok # mark
           expect(c.claims[:claims]).to eq(1)
           expect(c.user_data[:user_data]).to eq(1)
@@ -49,7 +51,7 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
   describe "authz denial case" do
     let(:authz_rules) do
       [
-        Himari::Rule.new(name: 'deny', block: proc { |c,d| d.deny! }),
+        Himari::Rule.new(name: 'deny', block: proc { |_c, d| d.deny! }),
       ]
     end
 
@@ -60,8 +62,7 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
 
   describe "no claims case" do
     let(:authz_rules) do
-      [
-      ]
+      []
     end
 
     it "raises ForbiddenError" do

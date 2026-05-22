@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 source "https://rubygems.org"
 
 gemspec path: 'himari'
@@ -12,6 +13,11 @@ gem 'puma'
 gem 'nokogiri'
 
 gem 'rake'
+
+group :development do
+  gem 'rubocop'
+  gem 'rubocop-shopify'
+end
 
 group :test do
   gem 'rspec', '~> 3.0'

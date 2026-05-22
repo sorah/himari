@@ -1,0 +1,68 @@
+inherit_gem:
+  rubocop-shopify: rubocop.yml
+
+AllCops:
+  TargetRubyVersion: 3.4
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/SymbolArray:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Style/MethodCallWithArgsParentheses:
+  Enabled: false
+
+Layout/MultilineMethodArgumentLineBreaks:
+  Enabled: false
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: no_space
+
+Style/ClassMethodsDefinitions:
+  Enabled: false
+
+Style/SingleLineMethods:
+  Enabled: false
+
+Style/InvertibleUnlessCondition:
+  Enabled: false
+
+Style/RaiseArgs:
+  Enabled: false
+
+Naming/AccessorMethodName:
+  Enabled: false
+
+Naming/FileName:
+  Exclude:
+    - 'himari-aws/lib/himari-aws.rb'
+    - 'omniauth-himari/lib/omniauth-himari.rb'
+
+Lint/UnreachableCode:
+  Exclude:
+    - 'examples/**/*'
+
+Style/AccessModifierDeclarations:
+  Enabled: true
+  EnforcedStyle: inline
+
+Style/SpecialGlobalVars:
+  Enabled: false
+
+Style/CaseLikeIf:
+  Enabled: true
+  MinBranchesCount: 2
+
+Style/EmptyCaseCondition:
+  Enabled: false
+
+Lint/NoReturnInBeginEndBlocks:
+  Enabled: false
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: start_of_line

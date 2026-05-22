@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/client_registration'
 
@@ -26,7 +28,7 @@ RSpec.describe Himari::ClientRegistration do
     let(:client) { described_class.new(name: 'a', id: 'a', secret: 'secret', redirect_uris: []) }
 
     specify do
-      expect(client.match_hint?()).to eq(true)
+      expect(client.match_hint?).to eq(true)
       expect(client.match_hint?(id: 'a')).to eq(true)
       expect(client.match_hint?(id: 'b')).to eq(false)
     end

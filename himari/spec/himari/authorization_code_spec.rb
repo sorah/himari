@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/authorization_code'
 require 'base64'
@@ -10,7 +12,7 @@ RSpec.describe Himari::AuthorizationCode do
 
       code = described_class.make
       expect(code.code).to be_a(String)
-      expect(code.expiry).to eq((t+900).to_i)
+      expect(code.expiry).to eq((t + 900).to_i)
     end
   end
 
@@ -41,7 +43,7 @@ RSpec.describe Himari::AuthorizationCode do
     end
 
     context "with valid pkce plain" do
-      let(:code) { described_class.new(code: '', code_challenge: 'f'*100, code_challenge_method: 'plain') }
+      let(:code) { described_class.new(code: '', code_challenge: 'f' * 100, code_challenge_method: 'plain') }
 
       specify do
         expect(code.pkce?).to eq(true)

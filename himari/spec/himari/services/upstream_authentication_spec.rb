@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 require 'himari/services/upstream_authentication'
@@ -23,16 +25,23 @@ RSpec.describe Himari::Services::UpstreamAuthentication do
   subject(:result) { service.perform }
 
   describe "nominal case" do
-
     let(:claims_rules) do
       [
-        Himari::Rule.new(name: 'claims', block: proc { |c,d| d.initialize_claims!(sub: c.auth[:id], preferred_username: c.auth[:name]); d.user_data[:foo] = :bar; d.continue! }),
+        Himari::Rule.new(name: 'claims', block: proc { |c, d|
+          d.initialize_claims!(sub: c.auth[:id], preferred_username: c.auth[:name])
+          d.user_data[:foo] = :bar
+          d.continue!
+        }),
       ]
     end
 
     let(:authn_rules) do
       [
-        Himari::Rule.new(name: 'allow', block: proc { |c,d| next d.allow! if c.claims[:sub] == 'abcdef'; d.skip! }),
+        Himari::Rule.new(name: 'allow', block: proc { |c, d|
+          next d.allow! if c.claims[:sub] == 'abcdef'
+
+          d.skip!
+        }),
       ]
     end
 
@@ -47,13 +56,16 @@ RSpec.describe Himari::Services::UpstreamAuthentication do
   describe "authn denial case" do
     let(:claims_rules) do
       [
-        Himari::Rule.new(name: 'claims', block: proc { |c,d| d.initialize_claims!(sub: c.auth[:id]); d.continue! }),
+        Himari::Rule.new(name: 'claims', block: proc { |c, d|
+          d.initialize_claims!(sub: c.auth[:id])
+          d.continue!
+        }),
       ]
     end
 
     let(:authn_rules) do
       [
-        Himari::Rule.new(name: 'deny', block: proc { |c,d| d.deny! }),
+        Himari::Rule.new(name: 'deny', block: proc { |_c, d| d.deny! }),
       ]
     end
 
@@ -64,13 +76,12 @@ RSpec.describe Himari::Services::UpstreamAuthentication do
 
   describe "no claims case" do
     let(:claims_rules) do
-      [
-      ]
+      []
     end
 
     let(:authn_rules) do
       [
-        Himari::Rule.new(name: 'allow', block: proc { |c,d| d.allow! }),
+        Himari::Rule.new(name: 'allow', block: proc { |_c, d| d.allow! }),
       ]
     end
 

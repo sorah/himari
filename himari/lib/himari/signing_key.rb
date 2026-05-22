@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'digest/sha2'
 require 'base64'
 module Himari
@@ -15,7 +17,6 @@ module Himari
 
     attr_reader :id, :pkey, :group
 
-
     def active?
       !@inactive
     end
@@ -30,7 +31,7 @@ module Himari
       end
 
       result &&= if !active.nil?
-        active == self.active?
+        active == active?
       else
         true
       end
@@ -55,9 +56,9 @@ module Himari
         'RS256'
       when OpenSSL::PKey::EC
         case ec_crv
-        when 'P-256'; 'ES256'
-        when 'P-384'; 'ES384'
-        when 'P-521'; 'ES512'
+        when 'P-256' then 'ES256'
+        when 'P-384' then 'ES384'
+        when 'P-521' then 'ES512'
         else
           raise AlgUnknown
         end
@@ -68,9 +69,9 @@ module Himari
 
     def hash_function
       case alg
-      when 'ES256', 'RS256'; Digest::SHA256
-      when 'ES384'; Digest::SHA384
-      when 'ES512'; Digest::SHA512
+      when 'ES256', 'RS256' then Digest::SHA256
+      when 'ES384' then Digest::SHA384
+      when 'ES512' then Digest::SHA512
       else
         raise AlgUnknown
       end
@@ -78,6 +79,7 @@ module Himari
 
     def ec_crv
       raise OperationInvalid, "this key is not EC" unless pkey.is_a?(OpenSSL::PKey::EC)
+
       # https://www.rfc-editor.org/rfc/rfc8422.html#appendix-A
       case pkey.group.curve_name
       when 'prime256v1', 'secp256r1'
@@ -97,10 +99,11 @@ module Himari
       when OpenSSL::PKey::EC # https://www.rfc-editor.org/rfc/rfc7518#section-6.2
         # https://www.secg.org/sec1-v2.pdf - 2.3.3. Elliptic-Curve-Point-to-Octet-String Conversion
         xy = pkey.public_key.to_octet_string(:uncompressed) # 0x04 || X || Y
-        len = pkey.group.degree/8
-        raise unless xy[0] == "\x04".b && xy.size == ((len*2)+1)
-        x = xy[1,len]
-        y = xy[1+len,len]
+        len = pkey.group.degree / 8
+        raise unless xy[0] == "\x04".b && xy.size == ((len * 2) + 1)
+
+        x = xy[1, len]
+        y = xy[1 + len, len]
 
         {
           kid: id,
@@ -117,8 +120,8 @@ module Himari
           kty: 'RSA',
           use: "sig",
           alg: alg,
-          n: Base64.urlsafe_encode64(pkey.n.to_s(2)).gsub(/=+/,''),
-          e: Base64.urlsafe_encode64(pkey.e.to_s(2)).gsub(/=+/,''),
+          n: Base64.urlsafe_encode64(pkey.n.to_s(2)).gsub(/=+/, ''),
+          e: Base64.urlsafe_encode64(pkey.e.to_s(2)).gsub(/=+/, ''),
         }
       else
         raise AlgUnknown

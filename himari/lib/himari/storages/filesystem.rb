@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/storages/base'
 
 module Himari
@@ -16,6 +18,7 @@ module Himari
         path = File.join(dir, key)
         Dir.mkdir(dir) unless Dir.exist?(dir)
         raise Himari::Storages::Base::Conflict if File.exist?(path)
+
         File.write(path, "#{JSON.pretty_generate(content)}\n")
         nil
       end
@@ -24,7 +27,7 @@ module Himari
         path = File.join(@path, kind, key)
         JSON.parse(File.read(path), symbolize_names: true)
       rescue Errno::ENOENT
-        return nil
+        nil
       end
 
       private def delete(kind, key)

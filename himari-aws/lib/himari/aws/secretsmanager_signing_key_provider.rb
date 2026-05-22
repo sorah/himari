@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'aws-sdk-secretsmanager'
 require 'himari/signing_key'
 require 'himari/middlewares/signing_key'
@@ -26,10 +28,12 @@ module Himari
 
         def collect(id: nil, active: nil, group: nil, **_remainder)
           return [] if group && group != @group
+
           case
           when id
             return [] unless id.start_with?("#{@kid_prefix}_")
-            version_id = id[(@kid_prefix.size+1)..-1] || ''
+
+            version_id = id[(@kid_prefix.size + 1)..-1] || ''
             [secret_value_to_signing_key(@client.get_secret_value(secret_id: @secret_id, version_id: version_id))].compact
 
           when active
@@ -50,10 +54,10 @@ module Himari
             JSON.parse(value.secret_string)
           rescue JSON::ParserError
             warn "JSON::ParserError while parsing #{value.arn} #{value.version_id}"
-            return nil
+            return
           end
-          
-          return nil unless json['kind'] == 'himari.signing_key'
+
+          return unless json['kind'] == 'himari.signing_key'
 
           pkey = case json.fetch('kty')
           when 'rsa'
@@ -76,4 +80,3 @@ module Himari
     end
   end
 end
-

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/item_provider'
 
 module Himari

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/services/oidc_provider_metadata_endpoint'
 
@@ -49,6 +51,5 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         expect(body[:id_token_signing_alg_values_supported]).to eq(%w(ES256 RS256))
       end
     end
-
   end
 end

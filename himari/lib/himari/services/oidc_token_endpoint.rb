@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rack/oauth2'
 require 'digest/sha2'
 require 'openid_connect'
@@ -39,7 +41,7 @@ module Himari
           end
           unless client.match_secret?(req.client_secret)
             @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_client, client secret mismatch', req: env['himari.request_as_log'], client: client.as_log, code_dgst: code_dgst))
-            next req.invalid_client! 
+            next req.invalid_client!
           end
 
           case req.grant_type
@@ -47,15 +49,15 @@ module Himari
             authz = @storage.find_authorization(req.code)
             unless authz
               @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, no grant code found', req: env['himari.request_as_log'], client: client.as_log))
-              next req.invalid_grant! 
+              next req.invalid_grant!
             end
             unless authz.valid_redirect_uri?(req.redirect_uri)
               @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, redirect_uri mismatch', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
-              next req.invalid_grant! 
+              next req.invalid_grant!
             end
             if authz.expiry <= Time.now.to_i
               @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, expired grant', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
-              next req.invalid_grant! 
+              next req.invalid_grant!
             end
 
             if authz.pkce?
@@ -79,6 +81,7 @@ module Himari
             if authz.openid
               signing_key = @signing_key_provider.find(group: client.preferred_key_group, active: true)
               raise SigningKeyMissing unless signing_key
+
               res.id_token = IdToken.from_authz(authz, signing_key: signing_key, access_token: token.format.to_s, issuer: @issuer).to_jwt
             end
 

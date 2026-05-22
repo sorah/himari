@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/signing_key'
 
@@ -10,7 +12,7 @@ RSpec.describe Himari::SigningKey do
 
     describe "simple" do
       specify do
-        expect(key.match_hint?()).to eq(true)
+        expect(key.match_hint?).to eq(true)
         expect(key.match_hint?(id: 'kid')).to eq(true)
         expect(key.match_hint?(active: true, group: 'a')).to eq(false)
         expect(key.match_hint?(active: false, group: 'a')).to eq(true)

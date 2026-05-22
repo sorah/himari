@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/decisions/base'
 require 'himari/lifetime_value'
 
@@ -31,11 +33,11 @@ module Himari
       attr_reader :lifetime
 
       def lifetime=(x)
-        case x
+        @lifetime = case x
         when LifetimeValue
-          @lifetime = x
+          x
         else
-          @lifetime = LifetimeValue.from_integer(x)
+          LifetimeValue.from_integer(x)
         end
       end
 
@@ -52,7 +54,7 @@ module Himari
       end
 
       def output_claims
-        claims.select { |k,_v| allowed_claims.include?(k) }
+        claims.select { |k, _v| allowed_claims.include?(k) }
       end
     end
   end

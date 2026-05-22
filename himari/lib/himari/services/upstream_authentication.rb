@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/log_line'
 require 'himari/decisions/authentication'
 require 'himari/decisions/claims'
@@ -29,7 +31,7 @@ module Himari
           {
             session: session_data&.as_log,
             decision: {
-              claims: claims_result&.as_log&.reject{ |k,_v| %i(allowed explicit_deny).include?(k) },
+              claims: claims_result&.as_log&.reject { |k, _v| %i(allowed explicit_deny).include?(k) },
               authentication: authn_result&.as_log,
             },
           }
@@ -64,15 +66,14 @@ module Himari
       end
 
       def perform
-        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: perform', objid: self.object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider]))
-        claims_result = make_claims()
+        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: perform', objid: object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider]))
+        claims_result = make_claims
         session_data = claims_result.decision.output
 
         authn_result = check_authn(claims_result, session_data)
 
-
         result = Result.new(claims_result, authn_result, session_data)
-        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: result', objid: self.object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider], result: result.as_log))
+        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: result', objid: object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider], result: result.as_log))
         result
       end
 
@@ -80,7 +81,7 @@ module Himari
         context = Himari::Decisions::Claims::Context.new(request: @request, auth: @auth).freeze
         result = Himari::RuleProcessor.new(context, Himari::Decisions::Claims.new).run(@claims_rules)
 
-        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: claims', objid: self.object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider], claims_result: result.as_log))
+        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: claims', objid: object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider], claims_result: result.as_log))
 
         begin
           claims = result.decision&.output&.claims
@@ -96,9 +97,10 @@ module Himari
         context = Himari::Decisions::Authentication::Context.new(provider: provider, claims: session_data.claims, user_data: session_data.user_data, request: @request).freeze
         result = Himari::RuleProcessor.new(context, Himari::Decisions::Authentication.new).run(@authn_rules)
 
-        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: authentication', objid: self.object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider],  authn_result: result.as_log))
+        @logger&.debug(Himari::LogLine.new('UpstreamAuthentication: authentication', objid: object_id.to_s(16), uid: @auth[:uid], provider: @auth[:provider], authn_result: result.as_log))
 
         raise UnauthorizedError.new(Result.new(claims_result, result, nil)) unless result.allowed
+
         result
       end
     end

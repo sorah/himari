@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/decisions/authorization'
 require 'himari/middlewares/authorization_rule'
 require 'himari/rule_processor'
