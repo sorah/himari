@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # config.ru
 require 'himari'
 require 'himari/aws'
@@ -8,7 +10,8 @@ require 'rack'
 require 'rack/session/cookie'
 require 'faraday'
 
-use(Rack::Session::Cookie,
+use(
+  Rack::Session::Cookie,
   path: '/',
   expire_after: 3600,
   secure: true,
@@ -19,22 +22,25 @@ use OmniAuth::Builder do
   provider :github
 end
 
-use(Himari::Middlewares::Config,
+use(
+  Himari::Middlewares::Config,
   issuer: 'https://idp.example.net',
   providers: [
-    { name: :github, button: 'Log in with GitHub' },
+    {name: :github, button: 'Log in with GitHub'},
   ],
   storage: Himari::Storages::Filesystem.new('/var/lib/himari/data'),
 )
 
 # Signing key
-use(Himari::Middlewares::SigningKey,
+use(
+  Himari::Middlewares::SigningKey,
   id: 'key1', # kid
   pkey: OpenSSL::PKey::RSA.new(File.read('...'), ''),
 )
 
 # Add clients as many as you need
-use(Himari::Middlewares::Client,
+use(
+  Himari::Middlewares::Client,
   name: 'awsalb', # friendly name (this can be referenced from policies)
   id: '...',
   secret_hash: '...', # Digest::SHA384.hexdigest of actual secret
@@ -63,14 +69,14 @@ use(Himari::Middlewares::ClaimsRule, name: 'github-oauth-teams') do |context, de
 
   # https://docs.github.com/en/rest/teams/teams?apiVersion=2022-11-28#list-teams-for-the-authenticated-user
   # (not available in GitHub Apps = only available in OAuth apps)
-  user_teams_resp = gh_faraday.get('user/teams', {per_page: 100}, { 'Accept' => 'application/vnd.github+json', 'Authorization' => "Bearer #{context.auth[:credentials][:token]}" }).body
+  user_teams_resp = gh_faraday.get('user/teams', {per_page: 100}, {'Accept' => 'application/vnd.github+json', 'Authorization' => "Bearer #{context.auth[:credentials][:token]}"}).body
 
   teams_in_scope = %w(
     contoso/engineers
     contoso/admins
   )
   teams = user_teams_resp
-    .map { |team| "#{team.fetch('organization').fetch('login')}/#{team.fetch('slug')}" }
+    .map { |team| "#{team.fetch("organization").fetch("login")}/#{team.fetch("slug")}" }
     .select { |login_slug| teams_in_scope.include?(login_slug) }
 
   next decision.skip!("no teams in scope") if teams.empty?
@@ -90,7 +96,7 @@ use(Himari::Middlewares::AuthenticationRule, name: 'allow-github-with-teams') do
   if context.claims[:groups] && !context.claims[:groups].empty?
     next decision.allow!
   end
-  
+
   decision.skip!
 end
 use(Himari::Middlewares::AuthenticationRule, name: 'deny-someone') do |context, decision|
@@ -110,11 +116,10 @@ use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decisi
   )
 
   if available_for_everyone.include?(context.client.name)
-    next decision.allow! 
+    next decision.allow!
   end
 
   decision.skip!
 end
 
 run Himari::App
-

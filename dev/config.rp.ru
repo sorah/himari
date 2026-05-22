@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # config.ru
 require 'open-uri'
 require 'omniauth'
@@ -23,12 +25,12 @@ class App < Sinatra::Base
   post '/auth/himari/callback', &cb
 end
 
-
-use(Rack::Session::Cookie,
+use(
+  Rack::Session::Cookie,
   key: 'rp_session',
   path: '/',
   expire_after: 3600,
-  #secure: true,
+  # secure: true,
   secret: SecureRandom.hex(32),
 )
 
@@ -41,6 +43,5 @@ use OmniAuth::Builder do
     use_userinfo: true,
   }
 end
-
 
 run App
