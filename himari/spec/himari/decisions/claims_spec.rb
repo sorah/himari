@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/decisions/claims'
 
@@ -6,8 +8,8 @@ RSpec.describe Himari::Decisions::Claims do
 
   describe "#claims" do
     it "raises error when uninitialized" do
-      expect{ decision.claims }.to raise_error(Himari::Decisions::Claims::UninitializedError)
-      expect{ decision.user_data }.to raise_error(Himari::Decisions::Claims::UninitializedError)
+      expect { decision.claims }.to raise_error(Himari::Decisions::Claims::UninitializedError)
+      expect { decision.user_data }.to raise_error(Himari::Decisions::Claims::UninitializedError)
     end
 
     it "does not raise error when initialized" do

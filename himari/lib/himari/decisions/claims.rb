@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/decisions/base'
 require 'himari/session_data'
 
@@ -42,6 +44,7 @@ module Himari
         if @claims
           raise AlreadyInitializedError, "Claims already initialized; use decision.claims to make modification, or rule might be behaving wrong"
         end
+
         @claims = claims.dup
         @user_data = {}
       end

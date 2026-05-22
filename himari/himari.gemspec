@@ -18,11 +18,11 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
-  if ENV['HIMARI_LAMBDA_IMAGE']
-    spec.files = Dir.chdir(__dir__) { Dir["./**/*"] }.reject { |f|  (File.expand_path(f) == __FILE__) }
+  spec.files = if ENV['HIMARI_LAMBDA_IMAGE']
+    Dir.chdir(__dir__) { Dir["./**/*"] }.reject { |f| File.expand_path(f) == __FILE__ }
   else
-    spec.files = Dir.chdir(__dir__) do
-      `git ls-files -z`.split("\x0").reject do |f|
+    Dir.chdir(__dir__) do
+      %x(git ls-files -z).split("\x0").reject do |f|
         (File.expand_path(f) == __FILE__) || f.start_with?(*%w[bin/ test/ spec/ features/ .git .circleci appveyor])
       end
     end
@@ -31,14 +31,14 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "sinatra", '>= 3.0'
-  spec.add_dependency 'rack-protection'
   spec.add_dependency "omniauth", ">= 2.0"
+  spec.add_dependency 'rack-protection'
+  spec.add_dependency "sinatra", '>= 3.0'
 
   spec.add_dependency 'addressable'
 
-  spec.add_dependency "rack-oauth2"
   spec.add_dependency "openid_connect"
+  spec.add_dependency "rack-oauth2"
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"

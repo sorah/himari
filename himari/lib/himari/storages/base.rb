@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/authorization_code'
 require 'himari/access_token'
 require 'himari/session_data'

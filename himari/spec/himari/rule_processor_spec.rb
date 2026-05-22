@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/rule_processor'
 require 'himari/rule'
@@ -28,8 +30,7 @@ RSpec.describe Himari::RuleProcessor do
   describe "effect" do
     describe "for empty rule set" do
       let(:rules) do
-        [
-        ]
+        []
       end
 
       it "returns implicit deny" do
@@ -44,8 +45,8 @@ RSpec.describe Himari::RuleProcessor do
     describe "for no-effect rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'continue', block: proc { |c,d| d.continue! }),
-          Himari::Rule.new(name: 'skip', block: proc { |c,d| d.skip! }),
+          Himari::Rule.new(name: 'continue', block: proc { |_c, d| d.continue! }),
+          Himari::Rule.new(name: 'skip', block: proc { |_c, d| d.skip! }),
         ]
       end
 
@@ -61,7 +62,7 @@ RSpec.describe Himari::RuleProcessor do
     describe "for allow rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.allow! }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d| d.allow! }),
         ]
       end
 
@@ -78,7 +79,7 @@ RSpec.describe Himari::RuleProcessor do
     describe "for deny rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'deny', block: proc { |c,d| d.deny! }),
+          Himari::Rule.new(name: 'deny', block: proc { |_c, d| d.deny! }),
         ]
       end
 
@@ -94,9 +95,9 @@ RSpec.describe Himari::RuleProcessor do
     describe "for allow-then-deny rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.allow! }),
-          Himari::Rule.new(name: 'deny', block: proc { |c,d| d.deny! }),
-          Himari::Rule.new(name: 'should-not-be-called', block: proc { |c,d| raise "this should not be called" }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d| d.allow! }),
+          Himari::Rule.new(name: 'deny', block: proc { |_c, d| d.deny! }),
+          Himari::Rule.new(name: 'should-not-be-called', block: proc { |_c, _d| raise "this should not be called" }),
         ]
       end
 
@@ -112,7 +113,7 @@ RSpec.describe Himari::RuleProcessor do
     describe "for undecided rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'no-decision', block: proc { |c,d| :do_nothing }),
+          Himari::Rule.new(name: 'no-decision', block: proc { |_c, _d| :do_nothing }),
         ]
       end
 
@@ -126,7 +127,10 @@ RSpec.describe Himari::RuleProcessor do
     describe "for allow rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.value = :allow; d.allow! }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d|
+            d.value = :allow
+            d.allow!
+          }),
         ]
       end
 
@@ -142,7 +146,10 @@ RSpec.describe Himari::RuleProcessor do
     describe "for deny rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'deny', block: proc { |c,d| d.value = :deny; d.deny! }),
+          Himari::Rule.new(name: 'deny', block: proc { |_c, d|
+            d.value = :deny
+            d.deny!
+          }),
         ]
       end
 
@@ -157,7 +164,10 @@ RSpec.describe Himari::RuleProcessor do
     describe "for continue rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'continue', block: proc { |c,d| d.value = :continue; d.continue! }),
+          Himari::Rule.new(name: 'continue', block: proc { |_c, d|
+            d.value = :continue
+            d.continue!
+          }),
         ]
       end
 
@@ -173,7 +183,10 @@ RSpec.describe Himari::RuleProcessor do
     describe "for skip rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'skip', block: proc { |c,d| d.value = :skip; d.skip! }),
+          Himari::Rule.new(name: 'skip', block: proc { |_c, d|
+            d.value = :skip
+            d.skip!
+          }),
         ]
       end
 
@@ -189,8 +202,15 @@ RSpec.describe Himari::RuleProcessor do
     describe "for allow-then-continue rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.value = :allow; d.allow! }),
-          Himari::Rule.new(name: 'continue', block: proc { |c,d| expect(d.value).to eq(:allow); d.value = :continue; d.continue! }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d|
+            d.value = :allow
+            d.allow!
+          }),
+          Himari::Rule.new(name: 'continue', block: proc { |_c, d|
+            expect(d.value).to eq(:allow)
+            d.value = :continue
+            d.continue!
+          }),
         ]
       end
 
@@ -206,8 +226,11 @@ RSpec.describe Himari::RuleProcessor do
     describe "for skip-and-allow rule set" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'skip', block: proc { |c,d| d.value = :skip; d.skip! }),
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.allow! }),
+          Himari::Rule.new(name: 'skip', block: proc { |_c, d|
+            d.value = :skip
+            d.skip!
+          }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d| d.allow! }),
         ]
       end
 
@@ -224,8 +247,16 @@ RSpec.describe Himari::RuleProcessor do
       let(:marker) { double('marker') }
       let(:rules) do
         [
-          Himari::Rule.new(name: 'allow', block: proc { |c,d| d.value = :allow; d.allow! }),
-          Himari::Rule.new(name: 'skip', block: proc { |c,d| expect(d.value).to eq(:allow); marker.call; d.value = :skip; d.skip! }),
+          Himari::Rule.new(name: 'allow', block: proc { |_c, d|
+            d.value = :allow
+            d.allow!
+          }),
+          Himari::Rule.new(name: 'skip', block: proc { |_c, d|
+            expect(d.value).to eq(:allow)
+            marker.call
+            d.value = :skip
+            d.skip!
+          }),
         ]
       end
 
@@ -244,10 +275,30 @@ RSpec.describe Himari::RuleProcessor do
   describe "transient value" do
     let(:rules) do
       [
-        Himari::Rule.new(name: 'allow', block: proc { |c,d| raise if d.transient_value; d.transient_value = true; d.allow! }),
-        Himari::Rule.new(name: 'continue', block: proc { |c,d| raise if d.transient_value; d.transient_value = true; d.continue! }),
-        Himari::Rule.new(name: 'skip', block: proc { |c,d| raise if d.transient_value; d.transient_value = true; d.skip! }),
-        Himari::Rule.new(name: 'deny', block: proc { |c,d| raise if d.transient_value; d.transient_value = true; d.deny! }),
+        Himari::Rule.new(name: 'allow', block: proc { |_c, d|
+          raise if d.transient_value
+
+          d.transient_value = true
+          d.allow!
+        }),
+        Himari::Rule.new(name: 'continue', block: proc { |_c, d|
+          raise if d.transient_value
+
+          d.transient_value = true
+          d.continue!
+        }),
+        Himari::Rule.new(name: 'skip', block: proc { |_c, d|
+          raise if d.transient_value
+
+          d.transient_value = true
+          d.skip!
+        }),
+        Himari::Rule.new(name: 'deny', block: proc { |_c, d|
+          raise if d.transient_value
+
+          d.transient_value = true
+          d.deny!
+        }),
       ]
     end
 
@@ -260,7 +311,10 @@ RSpec.describe Himari::RuleProcessor do
     describe "double allow" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'doubleallow', block: proc { |c,d| d.allow!; d.allow!; }),
+          Himari::Rule.new(name: 'doubleallow', block: proc { |_c, d|
+            d.allow!
+            d.allow!
+          }),
         ]
       end
 
@@ -275,7 +329,7 @@ RSpec.describe Himari::RuleProcessor do
 
       let(:rules) do
         [
-          Himari::Rule.new(name: 'invalid', block: proc { |c,d| d.allow! }),
+          Himari::Rule.new(name: 'invalid', block: proc { |_c, d| d.allow! }),
         ]
       end
 
@@ -285,7 +339,7 @@ RSpec.describe Himari::RuleProcessor do
     describe "allow with suggestion" do
       let(:rules) do
         [
-          Himari::Rule.new(name: 'invalid', block: proc { |c,d| d.allow!(nil, suggest: :something) }),
+          Himari::Rule.new(name: 'invalid', block: proc { |_c, d| d.allow!(nil, suggest: :something) }),
         ]
       end
 

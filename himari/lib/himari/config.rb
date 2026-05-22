@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'logger'
 require 'time'
 require 'json'
@@ -24,7 +26,7 @@ module Himari
     def logger
       @logger ||= Logger.new(@log_output).tap do |l|
         l.level = @log_level
-        l.formatter = proc do |severity, datetime, progname, msg|
+        l.formatter = proc do |severity, datetime, _progname, msg|
           log = {time: datetime.xmlschema, severity: severity.to_s, pid: Process.pid}
 
           case msg

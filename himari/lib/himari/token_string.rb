@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'securerandom'
 require 'base64'
 require 'digest/sha2'
@@ -25,7 +27,7 @@ module Himari
           handle: SecureRandom.urlsafe_base64(32),
           secret: SecureRandom.urlsafe_base64(48),
           expiry: Time.now.to_i + (lifetime || default_lifetime),
-          **kwargs
+          **kwargs,
         )
       end
 
@@ -48,6 +50,7 @@ module Himari
 
     def secret
       raise SecretMissing unless @secret
+
       @secret
     end
 
@@ -64,6 +67,7 @@ module Himari
       dgst = Base64.urlsafe_decode64(secret_hash) # TODO: rescue errors
       given_dgst = Digest::SHA384.digest(given_secret)
       raise SecretIncorrect unless Rack::Utils.secure_compare(dgst, given_dgst)
+
       @secret = given_secret
       true
     end
@@ -77,6 +81,7 @@ module Himari
         parts = str.split('.')
         raise InvalidFormat unless parts.size == 3
         raise InvalidFormat unless parts[0] == header
+
         new(header: header, handle: parts[1], secret: parts[2])
       end
 

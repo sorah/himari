@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   LifetimeValue = Struct.new(:access_token, :id_token, :code, keyword_init: true) do
     def self.from_integer(i)

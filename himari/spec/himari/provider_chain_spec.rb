@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/provider_chain'
 require 'himari/item_providers/static'
@@ -8,9 +10,10 @@ RSpec.describe Himari::ProviderChain do
       @str = str
     end
     attr_reader :str
+
     def match_hint?(str: nil)
       if str
-        str === @str
+        str === @str # rubocop:disable Style/CaseEquality
       else
         true
       end

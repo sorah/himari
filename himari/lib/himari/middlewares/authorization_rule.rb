@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/rule'
 require 'himari/item_providers/static'
 

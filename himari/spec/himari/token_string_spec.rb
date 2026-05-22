@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'himari/token_string'
 
@@ -73,7 +75,7 @@ RSpec.describe Himari::TokenString do
 
   describe ".parse" do
     specify do
-      expect(Himari::TokenString::Format).to receive(:parse).with('thdr','thdr.aaa.bbb')
+      expect(Himari::TokenString::Format).to receive(:parse).with('thdr', 'thdr.aaa.bbb')
       TestToken.parse('thdr.aaa.bbb')
     end
   end
@@ -97,14 +99,14 @@ RSpec.describe Himari::TokenString do
 
   describe "#verify_secret!" do
     context 'with secret' do
-      subject { TestToken.new(attr: 1, secret: 'himitsu', expiry: Time.now.to_i+86400) }
+      subject { TestToken.new(attr: 1, secret: 'himitsu', expiry: Time.now.to_i + 86400) }
 
       specify { expect(subject.verify_secret!('himitsu')).to eq(true) }
       specify { expect { subject.verify_secret!('incorrect') }.to raise_error(Himari::TokenString::SecretIncorrect) }
     end
 
     context 'with secret_hash' do
-      subject { TestToken.new(attr: 2, secret_hash: Base64.urlsafe_encode64(Digest::SHA384.digest('himitsu')), expiry: Time.now.to_i+86400) }
+      subject { TestToken.new(attr: 2, secret_hash: Base64.urlsafe_encode64(Digest::SHA384.digest('himitsu')), expiry: Time.now.to_i + 86400) }
 
       specify { expect(subject.verify_secret!('himitsu')).to eq(true) }
       specify { expect { subject.verify_secret!('incorrect') }.to raise_error(Himari::TokenString::SecretIncorrect) }
@@ -116,13 +118,12 @@ RSpec.describe Himari::TokenString do
 
     context "with future expiry" do
       let(:expiry) { Time.now.to_i + 86400 }
-      specify { expect { subject.verify_expiry!() }.not_to raise_error }
+      specify { expect { subject.verify_expiry! }.not_to raise_error }
     end
 
     context "with past expiry" do
       let(:expiry) { Time.now.to_i - 1 }
-      specify { expect { subject.verify_expiry!() }.to raise_error(Himari::TokenString::TokenExpired) }
+      specify { expect { subject.verify_expiry! }.to raise_error(Himari::TokenString::TokenExpired) }
     end
   end
-
 end

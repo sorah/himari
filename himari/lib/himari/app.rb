@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'sinatra/base'
 require 'addressable'
 require 'base64'
@@ -42,13 +44,15 @@ module Himari
     helpers do
       def current_user
         return @current_user if defined? @current_user
+
         given_token = session[:himari_session]
-        return nil unless given_token
+        return unless given_token
 
         given_parsed_token = Himari::SessionData.parse(given_token)
 
         token = config.storage.find_session(given_parsed_token.handle)
         raise InvalidSessionToken, "no session found in storage (possibly expired)" unless token
+
         token.verify!(secret: given_parsed_token.secret)
 
         @current_user = token
@@ -75,7 +79,7 @@ module Himari
           request.path
         else
           Addressable::URI.parse(request.fullpath).tap do |u|
-            u.query_values = u.query_values.reject { |k,_v| k == 'prompt' }
+            u.query_values = u.query_values.reject { |k, _v| k == 'prompt' }
           end.to_s
         end
         query = Addressable::URI.form_encode(back_to: back_to)
@@ -103,12 +107,10 @@ module Himari
       end
 
       def release_code
-        env['himari.release'] ||= begin
-          [
-            Himari::VERSION,
-            config.release_fragment,
-          ].compact.join(':')
-        end
+        env['himari.release'] ||= [
+          Himari::VERSION,
+          config.release_fragment,
+        ].compact.join(':')
       end
 
       def request_id
@@ -134,7 +136,7 @@ module Himari
     end
 
     before do
-      request_as_log()
+      request_as_log
     end
 
     get '/' do
@@ -146,7 +148,7 @@ module Himari
       client = client_provider.find(id: params[:client_id])
       unless client
         logger&.warn(Himari::LogLine.new('authorize: no client registration found', req: request_as_log, client_id: params[:client_id]))
-        next halt 401, 'unknown client' 
+        next halt 401, 'unknown client'
       end
 
       if current_user
@@ -171,11 +173,9 @@ module Himari
         logger&.info(Himari::LogLine.new('authorize: prompt login', req: request_as_log, client_id: params[:client_id]))
         erb(config.custom_templates[:login] || :login)
       end
-
     rescue Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired
-      logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate (demanded by oidc request)',  req: request_as_log, session: current_user&.as_log, allowed: decision&.authz_result&.allowed, result: decision&.as_log))
+      logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate (demanded by oidc request)', req: request_as_log, session: current_user&.as_log, allowed: decision&.authz_result&.allowed, result: decision&.as_log))
       next erb(config.custom_templates[:login] || :login)
-
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
 
@@ -243,17 +243,17 @@ module Himari
 
       given_back_to = request.env['omniauth.params']&.fetch('back_to', nil)
       back_to = if given_back_to
-        uri = begin
-          Addressable::URI.parse(given_back_to)
-        rescue Addressable::URI::InvalidURIError
-          nil
-        end
-        if uri && uri.host.nil? && uri.scheme.nil? && uri.path.start_with?('/')
-          given_back_to
-        else
-          logger&.warn(Himari::LogLine.new('invalid back_to', req: request_as_log, given_back_to: given_back_to))
-          nil
-        end
+                  uri = begin
+                    Addressable::URI.parse(given_back_to)
+                  rescue Addressable::URI::InvalidURIError
+                    nil
+                  end
+                  if uri && uri.host.nil? && uri.scheme.nil? && uri.path.start_with?('/')
+                    given_back_to
+                  else
+                    logger&.warn(Himari::LogLine.new('invalid back_to', req: request_as_log, given_back_to: given_back_to))
+                    nil
+                  end
       end || '/'
 
       session.destroy

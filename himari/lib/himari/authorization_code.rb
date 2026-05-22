@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'digest/sha2'
 require 'himari/lifetime_value'
 
@@ -24,23 +26,23 @@ module Himari
       )
     end
 
-    alias _lifetime_raw lifetime
+    alias_method :_lifetime_raw, :lifetime
     private :_lifetime_raw
     def lifetime
       case _lifetime_raw
       when Hash
         self.lifetime = LifetimeValue.new(**_lifetime_raw)
-      when Integer #compat
+      when Integer # compat
         self.lifetime = LifetimeValue.from_integer(_lifetime_raw)
       else
         _lifetime_raw
       end
     end
 
-    alias _expiry_raw expiry
+    alias_method :_expiry_raw, :expiry
     private :_expiry_raw
     def expiry
-      self._expiry_raw || (self.expiry = created_at + (lifetime&.code || 900))
+      _expiry_raw || (self.expiry = created_at + (lifetime&.code || 900))
     end
 
     def valid_redirect_uri?(given_uri)

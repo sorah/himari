@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rack/oauth2'
 require 'openid_connect'
 require 'base64'
@@ -7,13 +9,12 @@ module Himari
   class IdToken
     # @param authz [Himari::AuthorizationCode]
     def self.from_authz(authz, **kwargs)
-      
       new(
         claims: authz.claims,
         client_id: authz.client_id,
         nonce: authz.nonce,
         lifetime: authz.lifetime.is_a?(Integer) ? authz.lifetime : authz.lifetime.id_token, # compat
-        **kwargs
+        **kwargs,
       )
     end
 
@@ -39,16 +40,17 @@ module Himari
         nbf: @time.to_i,
         exp: (@time + @lifetime).to_i,
       ).merge(
-        @nonce ? { nonce: @nonce } : {}
+        @nonce ? {nonce: @nonce} : {},
       ).merge(
-        @access_token ? { at_hash: at_hash } : {}
+        @access_token ? {at_hash: at_hash} : {},
       )
     end
 
     def at_hash
-      return nil unless @access_token
+      return unless @access_token
+
       dgst = @signing_key.hash_function.digest(@access_token)
-      Base64.urlsafe_encode64(dgst[0, dgst.size/2], padding: false)
+      Base64.urlsafe_encode64(dgst[0, dgst.size / 2], padding: false)
     end
 
     def to_jwt

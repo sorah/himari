@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Himari
   class RuleProcessor
     class MissingDecisionError < StandardError; end
@@ -40,6 +42,7 @@ module Himari
 
       rule.call(context, decision)
       raise MissingDecisionError, "rule '#{rule.name}' returned no decision; rule must use one of decision.allow!, deny!, continue!, skip!" unless decision.effect
+
       result.decision_log.push(decision)
 
       case decision.effect

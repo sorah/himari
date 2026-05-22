@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'digest/sha2'
 require 'base64'
@@ -45,13 +47,13 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
 
   context "with prompt=login" do
     it "raises ReauthenticationRequired" do
-      expect {
+      expect do
         get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=login'
-      }.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired)
+      end.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired)
     end
   end
 
-    context "with prompt=none+login" do
+  context "with prompt=none+login" do
     it "raises ReauthenticationRequired" do
       get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=none+login'
       expect(last_response.status).to eq(302)
@@ -138,5 +140,4 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(query['code']).to be_a(String)
     end
   end
-
 end

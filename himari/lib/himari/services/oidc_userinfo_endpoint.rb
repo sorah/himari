@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/access_token'
 require 'himari/token_string'
 require 'himari/log_line'
@@ -34,11 +36,13 @@ module Himari
           return [404, {'Content-Type' => 'application/json'}, ['{"error": "not_found"}']] unless %w(GET POST).include?(@env['REQUEST_METHOD'])
 
           raise InvalidToken unless given_token
+
           given_parsed_token = Himari::AccessToken.parse(given_token)
 
           token = @storage.find_token(given_parsed_token.handle)
           raise InvalidToken unless token
-          token.verify_expiry!()
+
+          token.verify_expiry!
           token.verify_secret!(given_parsed_token.secret)
 
           @logger&.info(Himari::LogLine.new('OidcUserinfoEndpoint: returning', req: @env['himari.request_as_log'], token: token.as_log))
@@ -63,8 +67,6 @@ module Himari
             method, token = ah&.split(/\s+/, 2) # https://www.rfc-editor.org/rfc/rfc9110#name-credentials
             if method&.downcase == 'bearer' && token && !token.empty?
               token
-            else
-              nil
             end
           end
         end
