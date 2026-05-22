@@ -1,0 +1,37 @@
+amends "package://github.com/jdx/hk/releases/download/v1.39.0/hk@1.39.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.39.0/hk@1.39.0#/Builtins.pkl"
+
+local linters = new Mapping<String, Step> {
+  ["rubocop"] {
+    workspace_indicator = ".rubocop.yml"
+    check = "cd {{workspace}} && bundle exec rubocop --force-exclusion {{ workspace_files }}"
+    fix =
+      "cd {{workspace}} && bundle exec rubocop --force-exclusion --autocorrect {{ workspace_files }}"
+    batch = true
+  }
+  ["actionlint"] = Builtins.actionlint
+  ["check-added-large-files"] = Builtins.check_added_large_files
+  ["check-byte-order-marker"] = Builtins.check_byte_order_marker
+  ["check-merge-conflict"] = Builtins.check_merge_conflict
+  ["check-symlinks"] = Builtins.check_symlinks
+  ["trailing-whitespace"] = Builtins.trailing_whitespace
+  ["zizmor"] = Builtins.zizmor
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps {
+      ...linters
+      ["no-commit-to-branch"] = Builtins.no_commit_to_branch
+    }
+  }
+  ["fix"] {
+    fix = true
+    steps = linters
+  }
+  ["check"] {
+    steps = linters
+  }
+}
