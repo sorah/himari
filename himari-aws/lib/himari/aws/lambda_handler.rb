@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari'
 require 'himari/aws/secretsmanager_signing_key_rotation_handler'
 
@@ -11,19 +13,20 @@ module Himari
   module Aws
     module LambdaHandler
       def self.app
-        @app ||= make_app()
+        @app ||= make_app
       end
 
       def self.config_ru
         a = Time.now
         retval = config_ru_from_task_root || config_ru_from_dynamodb
         b = Time.now
-        $stdout.puts(JSON.generate(config_ru: {ts: b, elapsed_time: b-a}))
+        $stdout.puts(JSON.generate(config_ru: {ts: b, elapsed_time: b - a}))
         retval
       end
 
       def self.config_ru_from_task_root
-        return nil unless ENV['LAMBDA_TASK_ROOT']
+        return unless ENV['LAMBDA_TASK_ROOT']
+
         File.read(File.join(ENV['LAMBDA_TASK_ROOT'], 'config.ru'))
       rescue Errno::ENOENT, Errno::EPERM
         nil
@@ -32,9 +35,10 @@ module Himari
       def self.config_ru_from_dynamodb
         dgst = ENV.fetch('HIMARI_RACK_DIGEST')
         table_name = ENV.fetch('HIMARI_RACK_DYNAMODB_TABLE')
-        pk, sk = "rack", "rack:#{dgst}"
+        pk = "rack"
+        sk = "rack:#{dgst}"
 
-        ddb = ::Aws::DynamoDB::Client.new()
+        ddb = ::Aws::DynamoDB::Client.new
         item = ddb.query(
           table_name: table_name,
           select: 'ALL_ATTRIBUTES',

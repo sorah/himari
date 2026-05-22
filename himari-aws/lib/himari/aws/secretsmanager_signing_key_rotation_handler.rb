@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_how.html
 require 'openssl'
 require 'json'
@@ -11,7 +13,7 @@ module Himari
       RotationRequest = Struct.new(:step, :id, :token, :secret, keyword_init: true)
 
       def self.handler(event:, context:)
-        @secretsmanager ||= ::Aws::SecretsManager::Client.new()
+        @secretsmanager ||= ::Aws::SecretsManager::Client.new
 
         secret = prerequisite_check!(event)
 
@@ -40,10 +42,12 @@ module Himari
       def self.prerequisite_check!(event)
         secret = @secretsmanager.describe_secret(secret_id: event.fetch('SecretId'))
         raise "secret #{secret.arn.inspect} have not enabled rotation" unless secret.rotation_enabled
+
         stages = secret.version_ids_to_stages[event.fetch('ClientRequestToken')]
-        raise "Secret version #{event.fetch('ClientRequestToken').inspect} has no stage for secret #{secret.arn.inspect}" unless stages
-        raise "Secret version #{event.fetch('ClientRequestToken').inspect} is on AWSCURRENT for secret #{secret.arn.inspect}" if stages.include?('AWSCURRENT') && !stages.include?('AWSPENDING')
-        raise "Secret version #{event.fetch('ClientRequestToken').inspect} is not on AWSPENDING for secret #{secret.arn.inspect}" unless stages.include?('AWSPENDING')
+        raise "Secret version #{event.fetch("ClientRequestToken").inspect} has no stage for secret #{secret.arn.inspect}" unless stages
+        raise "Secret version #{event.fetch("ClientRequestToken").inspect} is on AWSCURRENT for secret #{secret.arn.inspect}" if stages.include?('AWSCURRENT') && !stages.include?('AWSPENDING')
+        raise "Secret version #{event.fetch("ClientRequestToken").inspect} is not on AWSPENDING for secret #{secret.arn.inspect}" unless stages.include?('AWSPENDING')
+
         secret
       end
 
@@ -81,9 +85,9 @@ module Himari
           JSON.pretty_generate({kind: 'himari.signing_key', kty: 'rsa', rsa: {pem: rsa.to_pem}})
         when 'ec'
           curve = case param.fetch(:len, 256).to_i
-          when 256; 'prime256v1'
-          when 384; 'secp384r1'
-          when 521; 'secp521r1'
+          when 256 then 'prime256v1'
+          when 384 then 'secp384r1'
+          when 521 then 'secp521r1'
           else
             raise ArgumentError, "unknown len: #{param.inspect}"
           end
@@ -110,6 +114,7 @@ module Himari
         begin
           return JSON.parse(str, symbolize_names: true)
         rescue JSON::ParserError
+          # fall through to raise below
         end
 
         raise "cannot parse keygen param #{str.inspect}"
@@ -126,7 +131,7 @@ module Himari
       end
 
       def self.finish_secret(req)
-        current_version = req.secret.version_ids_to_stages.find { |k,v| v.include?('AWSCURRENT') }.first
+        current_version = req.secret.version_ids_to_stages.find { |_k, v| v.include?('AWSCURRENT') }.first
         if current_version == req.token
           puts "finishSecret: #{current_version} on #{req.id} is on AWSCURRENT, do nothing"
           return

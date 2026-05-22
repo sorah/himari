@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'himari/storages/base'
 require 'aws-sdk-dynamodb'
 
@@ -33,9 +35,9 @@ module Himari
           },
           # #{payload.each_key.map { |k| "##{k} = :#{k}" }.join(', ')}
           update_expression: <<~EOS,
-          SET
-            #content_json = :content_json
-          #{payload[:ttl] ? ", #ttl = :ttl" : "REMOVE #ttl"}
+            SET
+              #content_json = :content_json
+            #{payload[:ttl] ? ", #ttl = :ttl" : "REMOVE #ttl"}
           EOS
           condition_expression: overwrite ? nil : 'attribute_not_exists(pk)',
           expression_attribute_names: payload.each_key.map { |k| ["##{k}", k] }.to_h,
@@ -57,7 +59,8 @@ module Himari
           consistent_read: consistent_read?,
         ).items.first
 
-        return nil unless item
+        return unless item
+
         JSON.parse(item.fetch('content_json'), symbolize_names: true)
       end
 
@@ -65,7 +68,7 @@ module Himari
         pk = "storage:#{kind}:#{key}"
         @client.delete_item(
           table_name: @table_name,
-          key: {'pk' => pk, 'sk' => pk}
+          key: {'pk' => pk, 'sk' => pk},
         )
         nil
       end
