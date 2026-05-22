@@ -46,6 +46,7 @@ module OmniAuth
 
         raise ConfigurationError, "client_id and client_secret is required" unless options.client_id && options.client_secret
         raise ConfigurationError, "site is required" unless options.client_options.site
+
         super
       end
 
@@ -59,6 +60,7 @@ module OmniAuth
           'id_token' => access_token.params && access_token.params['id_token'],
         }
         raise IdTokenMissing, 'id_token is missing' unless retval['id_token']
+
         retval
       end
 
@@ -85,15 +87,15 @@ module OmniAuth
         return unless options.verify_at_hash
 
         function = case id_token.header['alg'] # this is safe as we've verified
-        when 'ES256', 'RS256'; Digest::SHA256
-        when 'ES384'; Digest::SHA384
-        when 'ES512'; Digest::SHA512
+        when 'ES256', 'RS256' then Digest::SHA256
+        when 'ES384' then Digest::SHA384
+        when 'ES512' then Digest::SHA512
         else
-          raise VerificationError, "unknown hash function to verify at_hash for #{id_token.header['alg']}"
+          raise VerificationError, "unknown hash function to verify at_hash for #{id_token.header["alg"]}"
         end
 
         dgst = function.digest(access_token.token)
-        expected_at_hash = Base64.urlsafe_encode64(dgst[0, dgst.size/2], padding: false)
+        expected_at_hash = Base64.urlsafe_encode64(dgst[0, dgst.size / 2], padding: false)
 
         given_at_hash = id_token.claims['at_hash']
 
@@ -103,7 +105,7 @@ module OmniAuth
       end
 
       def raw_info
-        @raw_info ||= (!skip_info? && options.use_userinfo) ? access_token.get('/public/oidc/userinfo').parsed : id_token.claims
+        @raw_info ||= !skip_info? && options.use_userinfo ? access_token.get('/public/oidc/userinfo').parsed : id_token.claims
       end
 
       def faraday
@@ -145,7 +147,7 @@ module OmniAuth
               verify_iss: true,
               iss: options.site,
               verify_expiration: true,
-            }.merge(options.verify_options)
+            }.merge(options.verify_options),
           ))
           verify_at_hash!(retval)
           retval
@@ -171,11 +173,9 @@ module OmniAuth
         end
 
         def inspect
-          "#<#{self.class.name}:0x#{self.__id__.to_s(16)}>"
+          "#<#{self.class.name}:0x#{__id__.to_s(16)}>"
         end
       end
     end
   end
 end
-
-
