@@ -9,31 +9,34 @@ module Himari
       class UninitializedError < StandardError; end
       class AlreadyInitializedError < StandardError; end
 
-      Context = Struct.new(:request, :auth, keyword_init: true) do
-        def provider; auth[:provider]; end
+      Context = Struct.new(:request, :auth, :provider, :grant_type, :refresh_info, keyword_init: true) do
+        def initial?; grant_type.nil? || grant_type == :initial; end
+        def refresh?; grant_type == :refresh_token; end
       end
 
-      allow_effects(:continue, :skip)
+      allow_effects(:continue, :skip, :deny)
 
-      def initialize(claims: nil, user_data: nil, lifetime: nil)
+      def initialize(claims: nil, user_data: nil, lifetime: nil, refresh_info: nil)
         super()
         @claims = claims
         @user_data = user_data
         @lifetime = lifetime
+        @refresh_info = refresh_info
       end
 
-      attr_accessor :lifetime
+      attr_accessor :lifetime, :refresh_info
 
       def to_evolve_args
         {
           claims: @claims.dup,
           user_data: @user_data.dup,
           lifetime: @lifetime&.to_i,
+          refresh_info: @refresh_info,
         }
       end
 
       def as_log
-        to_h.merge(claims: @claims)
+        to_h.merge(claims: @claims, refresh_info_set: !@refresh_info.nil?)
       end
 
       def output
@@ -50,9 +53,8 @@ module Himari
       end
 
       def claims
-        unless @claims
-          raise UninitializedError, "Claims uninitialized; use decision.initialize_claims! to declare claims first (or rule order might be unintentional)" unless @claims
-        end
+        raise UninitializedError, "Claims uninitialized; use decision.initialize_claims! to declare claims first (or rule order might be unintentional)" unless @claims
+
         @claims
       end
 

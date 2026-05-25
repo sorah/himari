@@ -40,9 +40,10 @@ module Himari
       # @param request [Rack::Request]
       # @param authz_rules [Array<Himari::Rule>] Authorization Rules
       # @param logger [Logger]
-      def initialize(session:, client:, request: nil, authz_rules: [], logger: nil)
+      def initialize(session:, client:, grant_type: :initial, request: nil, authz_rules: [], logger: nil)
         @session = session
         @client = client
+        @grant_type = grant_type
         @request = request
         @authz_rules = authz_rules
         @logger = logger
@@ -51,10 +52,11 @@ module Himari
       # @param session [Himari::SessionData]
       # @param client [Himari::ClientRegistration]
       # @param request [Rack::Request]
-      def self.from_request(session:, client:, request:)
+      def self.from_request(session:, client:, request:, grant_type: :initial)
         new(
           session: session,
           client: client,
+          grant_type: grant_type,
           request: request,
           authz_rules: Himari::ProviderChain.new(request.env[Himari::Middlewares::AuthorizationRule::RACK_KEY] || []).collect,
           logger: request.env['rack.logger'],
@@ -62,7 +64,7 @@ module Himari
       end
 
       def perform
-        context = Himari::Decisions::Authorization::Context.new(claims: @session.claims, user_data: @session.user_data, request: @request, client: @client).freeze
+        context = Himari::Decisions::Authorization::Context.new(claims: @session.claims, user_data: @session.user_data, request: @request, client: @client, grant_type: @grant_type).freeze
 
         authorization = Himari::RuleProcessor.new(context, Himari::Decisions::Authorization.new(claims: @session.claims.dup)).run(@authz_rules)
         raise ForbiddenError.new(Result.new(@client, nil, nil, authorization)) unless authorization.allowed

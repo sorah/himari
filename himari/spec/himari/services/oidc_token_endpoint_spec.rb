@@ -10,7 +10,14 @@ require 'himari/storages/memory'
 require 'himari/authorization_code'
 require 'himari/id_token'
 require 'himari/access_token'
+require 'himari/refresh_token'
+require 'himari/session_data'
 require 'himari/lifetime_value'
+require 'himari/rule'
+require 'himari/item_providers/static'
+require 'himari/middlewares/claims_rule'
+require 'himari/middlewares/authentication_rule'
+require 'himari/middlewares/authorization_rule'
 
 RSpec.describe Himari::Services::OidcTokenEndpoint do
   include Rack::Test::Methods
@@ -151,6 +158,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       expect(body[:token_type]).to eq('Bearer')
       expect(body[:expires_in]).to be_a(Integer)
       expect(body[:id_token]).to be_nil
+      expect(body[:refresh_token]).to be_nil
       at = body[:access_token]
       expect(at).to be_a(String)
       parse = Himari::AccessToken.parse(at)
@@ -160,6 +168,44 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       expect(token.claims).to eq(sub: 'chihiro')
 
       expect(storage.find_authorization(authz.code)).to be_nil
+    end
+
+    context "with offline_access scope but lifetime.refresh_token unset" do
+      let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, offline_access: true, session_handle: 'sess1', lifetime: lifetime_value) }
+
+      it "does not issue refresh_token" do
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
+        expect(last_response.status).to eq(200)
+        body = JSON.parse(last_response.body, symbolize_names: true)
+        expect(body[:refresh_token]).to be_nil
+      end
+    end
+
+    context "with offline_access scope and lifetime.refresh_token set" do
+      let(:lifetime_value) { Himari::LifetimeValue.new(id_token: 3600, access_token: 3600, refresh_token: 7200) }
+      let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, offline_access: true, session_handle: 'sess1', lifetime: lifetime_value) }
+
+      it "issues a refresh_token persisted in storage" do
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
+        expect(last_response.status).to eq(200)
+        body = JSON.parse(last_response.body, symbolize_names: true)
+        expect(body[:refresh_token]).to be_a(String)
+
+        parsed = Himari::RefreshToken.parse(body[:refresh_token])
+        stored = storage.find_refresh_token(parsed.handle)
+        expect(stored).not_to be_nil
+        expect(stored.verify_secret!(parsed.secret)).to eq(true)
+        expect(stored.session_handle).to eq('sess1')
+        expect(stored.client_id).to eq('clientid')
+      end
+
+      it "skips refresh_token when session_handle missing" do
+        authz2 = Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, offline_access: true, session_handle: nil, lifetime: lifetime_value)
+        storage.put_authorization(authz2)
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz2.code, 'redirect_uri' => 'https://rp.invalid/cb'
+        body = JSON.parse(last_response.body, symbolize_names: true)
+        expect(body[:refresh_token]).to be_nil
+      end
     end
 
     context "when PKCE enforced" do
@@ -174,10 +220,13 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       let(:scope_openid) { true }
 
       before do
-        expect(Himari::IdToken).to receive(:from_authz) do |authz_, signing_key:, access_token:, issuer:|
-          expect(authz_.code).to eq(authz.code)
+        expect(Himari::IdToken).to receive(:new) do |claims:, client_id:, nonce:, signing_key:, issuer:, access_token:, lifetime:|
+          expect(claims).to eq(authz.claims)
+          expect(client_id).to eq('clientid')
+          expect(nonce).to eq(authz.nonce)
           expect(issuer).to eq('https://test.invalid')
           expect(signing_key).to eq(signing_key)
+          expect(lifetime).to eq(3600)
           double('jwt', to_jwt: access_token)
         end
       end
@@ -197,6 +246,227 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
         expect(body[:id_token]).to eq(body[:access_token])
 
         expect(storage.find_authorization(authz.code)).to be_nil
+      end
+    end
+  end
+
+  describe "grant_type=refresh_token" do
+    let(:session) do
+      Himari::SessionData.make(claims: {sub: 'chihiro'}, user_data: {provider: 'test'}).tap do |s|
+        # opt the session into refresh by setting refresh_info (rule-supplied snapshot)
+        s.instance_variable_set(:@refresh_info, {sub: 'chihiro', provider: 'test', token: 'upstream'})
+      end
+    end
+
+    let(:refresh) do
+      Himari::RefreshToken.make(
+        client_id: 'clientid',
+        claims: {sub: 'chihiro'},
+        session_handle: session.handle,
+        openid: false,
+        lifetime: 7200,
+      )
+    end
+
+    let(:claims_rule) do
+      Himari::Rule.new(name: 'claims', block: proc { |c, d|
+        d.initialize_claims!(sub: c.refresh_info[:sub])
+        d.user_data[:provider] = c.refresh_info[:provider]
+        d.continue!
+      })
+    end
+
+    let(:authn_rule) do
+      Himari::Rule.new(name: 'authn', block: proc { |c, d|
+        d.refresh_info = c.refresh_info if c.refresh_info
+        d.allow!
+      })
+    end
+
+    let(:authz_rule) do
+      Himari::Rule.new(name: 'authz', block: proc { |_c, d|
+        d.lifetime = Himari::LifetimeValue.new(access_token: 3600, id_token: 3600, refresh_token: 7200)
+        d.allow!
+      })
+    end
+
+    before do
+      storage.put_session(session)
+      storage.put_refresh_token(refresh)
+    end
+
+    def post_refresh(token, env_extra = {})
+      env = {
+        Himari::Middlewares::ClaimsRule::RACK_KEY => [Himari::ItemProviders::Static.new([claims_rule])],
+        Himari::Middlewares::AuthenticationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authn_rule])],
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authz_rule])],
+      }.merge(env_extra)
+      post '/oidc/token', {'grant_type' => 'refresh_token', 'refresh_token' => token}, env
+    end
+
+    it "issues a new access token and rotates the refresh token in place" do
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(200)
+      body = JSON.parse(last_response.body, symbolize_names: true)
+      expect(body[:access_token]).to be_a(String)
+      expect(body[:refresh_token]).to be_a(String)
+      expect(body[:refresh_token]).not_to eq(refresh.format.to_s)
+
+      # rotation is in place: the handle is stable, the secret and version change.
+      new_parsed = Himari::RefreshToken.parse(body[:refresh_token])
+      expect(new_parsed.handle).to eq(refresh.handle)
+      expect(new_parsed.secret).not_to eq(refresh.secret)
+
+      stored = storage.find_refresh_token(refresh.handle)
+      expect(stored).not_to be_nil
+      expect(stored.version).to eq(refresh.version + 1)
+      expect(stored.session_handle).to eq(session.handle)
+      # the rotated token verifies against the new secret...
+      expect(stored.verify_secret!(new_parsed.secret)).to eq(true)
+      # ...and still against the just-presented (now previous) secret.
+      expect(storage.find_refresh_token(refresh.handle).verify_secret!(refresh.secret)).to eq(true)
+    end
+
+    it "tolerates a lost rotation response: the previous secret refreshes once more" do
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(200)
+      first = JSON.parse(last_response.body, symbolize_names: true)
+
+      # Simulate the client never receiving `first`: it retries with the original secret,
+      # which is now the previous secret on the rotated (same-handle) token.
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(200)
+      retried = JSON.parse(last_response.body, symbolize_names: true)
+      expect(retried[:refresh_token]).not_to eq(first[:refresh_token])
+
+      stored = storage.find_refresh_token(refresh.handle)
+      expect(stored.version).to eq(refresh.version + 2)
+    end
+
+    it "rejects and revokes a secret that is two generations old" do
+      post_refresh(refresh.format.to_s) # version+1, prev = original secret
+      first = JSON.parse(last_response.body, symbolize_names: true)
+      post_refresh(first[:refresh_token]) # version+2, prev = first secret; original retired
+
+      # The original secret is now neither current nor previous: a leak signal.
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects the loser without revoking on a version conflict" do
+      # A concurrent refresh that already rotated this handle bumps the version, so the
+      # compare-and-swap on the version we read conflicts. Reject without revoking, so the
+      # winner's rotated token (same handle) survives.
+      allow(storage).to receive(:put_refresh_token).and_raise(Himari::Storages::Base::Conflict)
+
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(400)
+
+      # not revoked: the token is still present (find is real; only put was stubbed).
+      expect(storage.find_refresh_token(refresh.handle)).not_to be_nil
+    end
+
+    it "rejects unknown refresh_token" do
+      post_refresh('hmrt.unknown.secret')
+      expect(last_response.status).to eq(400)
+    end
+
+    it "rejects refresh_token with bad secret" do
+      garbage = Himari::TokenString::Format.new(header: 'hmrt', handle: refresh.handle, secret: 'wrong').to_s
+      post_refresh(garbage)
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects when session has no refresh_info" do
+      session.instance_variable_set(:@refresh_info, nil)
+      storage.put_session(session, overwrite: true)
+      post_refresh(refresh.format.to_s)
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects and revokes when authn rule denies" do
+      deny_rule = Himari::Rule.new(name: 'authn', block: proc { |_c, d| d.deny! })
+      post '/oidc/token', {'grant_type' => 'refresh_token', 'refresh_token' => refresh.format.to_s}, {
+        Himari::Middlewares::ClaimsRule::RACK_KEY => [Himari::ItemProviders::Static.new([claims_rule])],
+        Himari::Middlewares::AuthenticationRule::RACK_KEY => [Himari::ItemProviders::Static.new([deny_rule])],
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authz_rule])],
+      }
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects and revokes when claims rule explicitly denies" do
+      deny_claims_rule = Himari::Rule.new(name: 'claims', block: proc { |_c, d| d.deny!("upstream refused refresh") })
+      post '/oidc/token', {'grant_type' => 'refresh_token', 'refresh_token' => refresh.format.to_s}, {
+        Himari::Middlewares::ClaimsRule::RACK_KEY => [Himari::ItemProviders::Static.new([deny_claims_rule])],
+        Himari::Middlewares::AuthenticationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authn_rule])],
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authz_rule])],
+      }
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects and revokes when authz rule denies" do
+      deny_rule = Himari::Rule.new(name: 'authz', block: proc { |_c, d| d.deny! })
+      post '/oidc/token', {'grant_type' => 'refresh_token', 'refresh_token' => refresh.format.to_s}, {
+        Himari::Middlewares::ClaimsRule::RACK_KEY => [Himari::ItemProviders::Static.new([claims_rule])],
+        Himari::Middlewares::AuthenticationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authn_rule])],
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([deny_rule])],
+      }
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    it "rejects and revokes refresh_token for different client" do
+      other_refresh = Himari::RefreshToken.make(client_id: 'otherclient', claims: {sub: 'chihiro'}, session_handle: session.handle, openid: false, lifetime: 7200)
+      storage.put_refresh_token(other_refresh)
+      post_refresh(other_refresh.format.to_s)
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(other_refresh.handle)).to be_nil
+    end
+
+    it "rejects and revokes when authz rule no longer configures a refresh_token lifetime" do
+      no_refresh_rule = Himari::Rule.new(name: 'authz', block: proc { |_c, d|
+        d.lifetime = Himari::LifetimeValue.new(access_token: 3600, id_token: 3600, refresh_token: nil)
+        d.allow!
+      })
+      post '/oidc/token', {'grant_type' => 'refresh_token', 'refresh_token' => refresh.format.to_s}, {
+        Himari::Middlewares::ClaimsRule::RACK_KEY => [Himari::ItemProviders::Static.new([claims_rule])],
+        Himari::Middlewares::AuthenticationRule::RACK_KEY => [Himari::ItemProviders::Static.new([authn_rule])],
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([no_refresh_rule])],
+      }
+      expect(last_response.status).to eq(400)
+      expect(storage.find_refresh_token(refresh.handle)).to be_nil
+    end
+
+    context "with openid refresh" do
+      let(:refresh) do
+        Himari::RefreshToken.make(
+          client_id: 'clientid',
+          claims: {sub: 'chihiro'},
+          session_handle: session.handle,
+          openid: true,
+          lifetime: 7200,
+        )
+      end
+
+      it "issues new id_token (without nonce)" do
+        expect(Himari::IdToken).to receive(:new) do |claims:, client_id:, nonce:, signing_key:, issuer:, **|
+          expect(nonce).to be_nil
+          expect(claims).to eq(sub: 'chihiro')
+          expect(client_id).to eq('clientid')
+          expect(issuer).to eq('https://test.invalid')
+          expect(signing_key).to eq(signing_key)
+          double('jwt', to_jwt: 'id-token-string')
+        end
+
+        post_refresh(refresh.format.to_s)
+        expect(last_response.status).to eq(200)
+        body = JSON.parse(last_response.body, symbolize_names: true)
+        expect(body[:id_token]).to eq('id-token-string')
       end
     end
   end

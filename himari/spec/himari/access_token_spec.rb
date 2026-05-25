@@ -8,7 +8,7 @@ require 'digest/sha2'
 RSpec.describe Himari::AccessToken do
   describe "make roundtrip" do
     let(:now) { Time.now }
-    let(:authz) { double('authz', client_id: 'client', claims: {sub: 'chihiro'}, lifetime: double('lifetime', access_token: 123)) }
+    let(:authz) { double('authz', client_id: 'client', claims: {sub: 'chihiro'}, session_handle: 'sess', lifetime: double('lifetime', access_token: 123)) }
     subject { described_class.from_authz(authz) }
 
     before do

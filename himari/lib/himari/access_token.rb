@@ -30,21 +30,25 @@ module Himari
       make(
         client_id: authz.client_id,
         claims: authz.claims,
+        session_handle: authz.session_handle,
         lifetime: authz.lifetime.access_token,
       )
     end
 
-    def initialize(handle:, client_id:, claims:, expiry:, secret: nil, secret_hash: nil)
+    def initialize(handle:, client_id:, claims:, expiry:, session_handle: nil, secret: nil, secret_hash: nil)
       @handle = handle
       @client_id = client_id
       @claims = claims
+      @session_handle = session_handle
       @expiry = expiry
 
       @secret = secret
       @secret_hash = secret_hash
+      @secret_hash_prev = nil
+      @verification = nil
     end
 
-    attr_reader :handle, :client_id, :claims, :expiry
+    attr_reader :handle, :client_id, :claims, :session_handle, :expiry
 
     def userinfo
       claims.merge(
@@ -64,6 +68,7 @@ module Himari
         handle: handle,
         client_id: client_id,
         claims: claims,
+        session_handle: session_handle,
         expiry: expiry,
       }
     end
@@ -74,6 +79,7 @@ module Himari
         secret_hash: secret_hash,
         client_id: client_id,
         claims: claims,
+        session_handle: session_handle,
         expiry: expiry.to_i,
       }
     end

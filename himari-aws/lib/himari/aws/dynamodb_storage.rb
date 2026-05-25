@@ -21,27 +21,44 @@ module Himari
 
       def consistent_read?; !!@consistent_read; end
 
-      private def write(kind, key, content, overwrite: false)
+      private def write(kind, key, content, overwrite: false, if_version: nil)
         pk = "storage:#{kind}:#{key}"
-        payload = {
+        # version and updated_at are mirrored to top-level attributes (besides living inside
+        # content_json) so the refresh-token compare-and-swap can reference them in a condition.
+        attrs = {
           content_json: JSON.pretty_generate(content),
-          ttl: content[:ttl] || content[:expiry],
-        }
+          version: content[:version],
+          updated_at: content[:updated_at],
+        }.compact
+        ttl = content[:ttl] || content[:expiry]
+        attrs[:ttl] = ttl if ttl
+
+        update_expression = +"SET #{attrs.keys.map { |k| "##{k} = :#{k}" }.join(", ")}"
+        update_expression << "\nREMOVE #ttl" unless attrs.key?(:ttl)
+
+        expression_attribute_names = attrs.keys.to_h { |k| ["##{k}", k.to_s] }
+        expression_attribute_names['#ttl'] = 'ttl' unless attrs.key?(:ttl)
+        expression_attribute_values = attrs.transform_keys { ":#{_1}" }
+
+        condition_expression =
+          if if_version
+            expression_attribute_names['#version'] = 'version'
+            expression_attribute_values[':expected_version'] = if_version
+            'attribute_exists(pk) AND #version = :expected_version'
+          elsif !overwrite
+            'attribute_not_exists(pk)'
+          end
+
         @client.update_item(
           table_name: @table_name,
           key: {
             'pk' => pk,
             'sk' => pk,
           },
-          # #{payload.each_key.map { |k| "##{k} = :#{k}" }.join(', ')}
-          update_expression: <<~EOS,
-            SET
-              #content_json = :content_json
-            #{payload[:ttl] ? ", #ttl = :ttl" : "REMOVE #ttl"}
-          EOS
-          condition_expression: overwrite ? nil : 'attribute_not_exists(pk)',
-          expression_attribute_names: payload.each_key.map { |k| ["##{k}", k] }.to_h,
-          expression_attribute_values: payload.transform_keys { ":#{_1}" },
+          update_expression: update_expression,
+          condition_expression: condition_expression,
+          expression_attribute_names: expression_attribute_names,
+          expression_attribute_values: expression_attribute_values,
         )
         nil
       rescue ::Aws::DynamoDB::Errors::ConditionalCheckFailedException

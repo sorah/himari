@@ -11,9 +11,14 @@ module Himari
         @memory = {}
       end
 
-      private def write(kind, key, content, overwrite: false)
+      private def write(kind, key, content, overwrite: false, if_version: nil)
         path = File.join(kind, key)
-        raise Himari::Storages::Base::Conflict if @memory.key?(path)
+        if if_version
+          existing = read(kind, key)
+          raise Himari::Storages::Base::Conflict unless existing && existing[:version] == if_version
+        elsif @memory.key?(path) && !overwrite
+          raise Himari::Storages::Base::Conflict
+        end
 
         @memory[path] = JSON.pretty_generate(content)
         nil

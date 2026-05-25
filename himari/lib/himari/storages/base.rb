@@ -2,6 +2,7 @@
 
 require 'himari/authorization_code'
 require 'himari/access_token'
+require 'himari/refresh_token'
 require 'himari/session_data'
 
 module Himari
@@ -44,6 +45,25 @@ module Himari
         delete('token', handle)
       end
 
+      def find_refresh_token(handle)
+        content = read('refresh', handle)
+        content && RefreshToken.new(**content)
+      end
+
+      # @param if_version [Integer, nil] when given, only write if the stored record's
+      #   version equals this value (compare-and-swap); raises Conflict otherwise.
+      def put_refresh_token(token, overwrite: false, if_version: nil)
+        write('refresh', token.handle, token.as_json, overwrite: overwrite, if_version: if_version)
+      end
+
+      def delete_refresh_token(token)
+        delete_refresh_token_by_handle(token.handle)
+      end
+
+      def delete_refresh_token_by_handle(handle)
+        delete('refresh', handle)
+      end
+
       def find_session(handle)
         content = read('session', handle)
         content && SessionData.new(**content)
@@ -61,7 +81,7 @@ module Himari
         delete('session', handle)
       end
 
-      private def write(kind, key, content, overwrite: false)
+      private def write(kind, key, content, overwrite: false, if_version: nil)
         raise NotImplementedError
       end
 

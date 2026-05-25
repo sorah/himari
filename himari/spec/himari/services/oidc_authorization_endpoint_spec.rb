@@ -140,4 +140,29 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(query['code']).to be_a(String)
     end
   end
+
+  context "with scope=offline_access" do
+    let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, session_handle: 'sess1') }
+
+    it "marks offline_access=true and carries session_handle onto the AuthorizationCode" do
+      get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid+offline_access&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+      expect(last_response.status).to eq(302)
+      query = Addressable::URI.parse(last_response.headers['location']).query_values
+
+      stored = storage.find_authorization(query['code'])
+      expect(stored.offline_access).to eq(true)
+      expect(stored.openid).to eq(true)
+      expect(stored.session_handle).to eq('sess1')
+    end
+  end
+
+  context "without scope=offline_access" do
+    let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, session_handle: 'sess1') }
+
+    it "marks offline_access=false" do
+      get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+      stored = storage.find_authorization(Addressable::URI.parse(last_response.headers['location']).query_values['code'])
+      expect(stored.offline_access).to eq(false)
+    end
+  end
 end

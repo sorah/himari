@@ -104,7 +104,7 @@ use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decisi
   decision.allowed_claims.push(:custom_claim)
 
   if clients_available_for_everyone.include?(context.client.name)
-    next decision.allow! 
+    next decision.allow!
   end
   decision.skip!
 end
@@ -128,8 +128,12 @@ run Himari::App
 ## Examples
 
 - [./examples/config.details.ru](./examples/config.details.ru): Rule API details
-- [./examples/config.github.ru](./examples/config.github.ru): GitHub Team list API example
+- [./examples/config.github.ru](./examples/config.github.ru): GitHub Team list API example, with refresh token revalidation
 - [./himari-aws](./himari-aws) for AWS Lambda, DynamoDB and Secrets Manager integration
+
+## Documentation
+
+- [docs/refresh-tokens.md](./docs/refresh-tokens.md): Enabling the refresh token grant and revalidating sessions on refresh
 
 ## Usage
 
@@ -144,7 +148,7 @@ Himari acts as an OIDC OpenID Provider. OIDC discovery metadata served at `/.wel
 
 - Consent/Authorize screen is not implemented. All authorization requests will be immediately approved on behalf of a logged in user, as long as AuthorizationRule permits.
 - Recognizes `openid` scope only.
-- Implements Authorization Code Flow (`response_type=code`) only. Public clients should use the same flow with PKCE.
+- Implements Authorization Code Grant Flow and [Refresh Token Grant Flow](./docs/refresh-tokens.md) only. Public clients should use the same flow with PKCE.
 
 ## Development
 
