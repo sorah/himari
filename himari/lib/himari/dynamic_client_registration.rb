@@ -185,7 +185,19 @@ module Himari
     end
 
     def as_log
-      {id: id, token_endpoint_auth_method: token_endpoint_auth_method, dynamic: true}
+      {
+        id: id,
+        token_endpoint_auth_method: token_endpoint_auth_method,
+        redirect_uris: redirect_uris,
+        grant_types: grant_types,
+        response_types: response_types,
+        client_name: client_name,
+        client_uri: client_uri,
+        scope: scope,
+        client_id_issued_at: client_id_issued_at,
+        expiry: expiry,
+        dynamic: true,
+      }
     end
 
     def as_json

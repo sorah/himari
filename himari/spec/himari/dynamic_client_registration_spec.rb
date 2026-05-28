@@ -174,6 +174,30 @@ RSpec.describe Himari::DynamicClientRegistration do
     end
   end
 
+  describe "#as_log" do
+    subject(:client) do
+      described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'client_secret_basic', client_name: 'cli', client_uri: 'https://app.test.invalid/', scope: 'openid'})
+    end
+
+    it "exposes client metadata attributes without secrets" do
+      log = client.as_log
+      expect(log).to include(
+        id: client.id,
+        token_endpoint_auth_method: 'client_secret_basic',
+        redirect_uris: redirect_uris,
+        grant_types: client.grant_types,
+        response_types: client.response_types,
+        client_name: 'cli',
+        client_uri: 'https://app.test.invalid/',
+        scope: 'openid',
+        client_id_issued_at: client.client_id_issued_at,
+        expiry: client.expiry,
+        dynamic: true,
+      )
+      expect(log).not_to include(:secret, :secret_hash)
+    end
+  end
+
   describe "JSON round-trip" do
     subject(:client) do
       described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'client_secret_basic', client_name: 'cli', scope: 'openid'})

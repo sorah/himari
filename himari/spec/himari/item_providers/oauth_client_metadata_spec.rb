@@ -48,6 +48,20 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         client = provider.collect(id: url).first
         expect(client.match_hint?(id: url)).to eq(true)
       end
+
+      context 'with a logger' do
+        let(:logger) { instance_double('Logger') }
+        let(:options) { {logger: logger} }
+
+        it 'logs the fetched client metadata' do
+          expect(logger).to receive(:info) do |line|
+            expect(line.message).to eq('OauthClientMetadata: fetched')
+            expect(line.data[:client_id]).to eq(url)
+            expect(line.data[:metadata]).to include(redirect_uris: %w(https://client.example.com/callback), token_endpoint_auth_method: 'none')
+          end
+          provider.collect(id: url)
+        end
+      end
     end
 
     context 'when no id hint is given' do

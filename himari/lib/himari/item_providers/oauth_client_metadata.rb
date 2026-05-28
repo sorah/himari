@@ -102,7 +102,10 @@ module Himari
         raise FetchError, 'unexpected content-type' unless json_content_type?(resp.headers['content-type'])
 
         doc = JSON.parse(body, symbolize_names: true)
-        [build_registration(doc, url), compute_ttl(resp)]
+        registration = build_registration(doc, url)
+        # The whole document is safe to log: it is size-capped and client_secret* is rejected.
+        @logger&.info(Himari::LogLine.new('OauthClientMetadata: fetched', client_id: url, metadata: doc))
+        [registration, compute_ttl(resp)]
       end
 
       private def build_registration(doc, url)
