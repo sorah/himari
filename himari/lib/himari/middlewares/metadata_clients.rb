@@ -35,7 +35,9 @@ module Himari
       RACK_KEY = 'himari.metadata_clients'
 
       DEFAULT_USER_AGENT = "Himari-OauthClientMetadataFetch/#{Himari::VERSION} (+https://github.com/sorah/himari)"
-      DEFAULT_HTTP_TIMEOUT = {connect_timeout: 5, request_timeout: 10}.freeze
+      # read_timeout is set explicitly: the stream plugin otherwise defaults it to Infinity, which
+      # would let a slow sender hold the fetch open indefinitely.
+      DEFAULT_HTTP_TIMEOUT = {connect_timeout: 5, request_timeout: 10, read_timeout: 10}.freeze
 
       Options = Data.define(:allowed_client_ids, :require_pkce, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
 
@@ -79,10 +81,14 @@ module Himari
         @app.call(env)
       end
 
-      # Build a persistent, SSRF-filtered HTTPX session. Notably it does not enable the
-      # follow_redirects plugin: the draft requires redirects not be followed.
+      # Build a persistent, SSRF-filtered HTTPX session with the stream plugin loaded, so the
+      # provider can request a streaming response (get(url, stream: true)) and cap the body during
+      # the read instead of buffering it whole. stream: true is passed per-request, not set here
+      # via .with: a session-level stream option yields an already-buffered Response with no #each.
+      # Notably it does not enable the follow_redirects plugin: the draft requires redirects not be
+      # followed.
       private def build_session(options)
-        session = HTTPX.plugin(:persistent)
+        session = HTTPX.plugin(:persistent).plugin(:stream)
         session = case options.ssrf
         when true
           session.plugin(:ssrf_filter, allowed_schemes: %w(https))

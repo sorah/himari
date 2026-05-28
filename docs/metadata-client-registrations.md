@@ -48,7 +48,7 @@ use(Himari::Middlewares::MetadataClients,
 
   # Fetch tuning.
   user_agent: 'Himari-OauthClientMetadataFetch/... (+https://github.com/sorah/himari)',
-  http_timeout: { connect_timeout: 5, request_timeout: 10 },
+  http_timeout: { connect_timeout: 5, request_timeout: 10, read_timeout: 10 },
   max_response_size: 5120, # bytes; documents larger than this are rejected
 
   # Cache bounds (seconds). The document's Cache-Control/Expires is honored
@@ -99,8 +99,10 @@ For a `client_id` to be accepted:
 
 - Only a `200` response is accepted — any 3xx/4xx/5xx is an error.
 - `Content-Type` must be `application/json` (or `*+json`).
-- Body must not exceed `max_response_size` (by `Content-Length` and actual
-  bytes).
+- Body must not exceed `max_response_size`. The response is **streamed** and the
+  read is aborted as soon as the cap is exceeded (a `Content-Length` header over
+  the cap is rejected up front), so a host that omits `Content-Length` cannot
+  make Himari buffer an unbounded body.
 
 **The document:**
 

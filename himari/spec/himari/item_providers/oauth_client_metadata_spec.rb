@@ -4,10 +4,17 @@ require 'spec_helper'
 require 'himari/item_providers/oauth_client_metadata'
 
 RSpec.describe Himari::ItemProviders::OauthClientMetadata do
-  # Minimal stand-in for an HTTPX response. raise_for_status is a no-op on success.
+  # Minimal stand-in for a streaming HTTPX response. raise_for_status is a no-op on success;
+  # #each yields the body as a single chunk (the provider reads the body via streaming).
   FakeResponse = Struct.new(:status, :headers, :body) do
     def raise_for_status
       self
+    end
+
+    def each
+      return enum_for(:each) unless block_given?
+
+      yield body
     end
   end
 
@@ -31,7 +38,7 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
 
   describe '#collect' do
     context 'with a compliant client_id whose document is valid' do
-      before { allow(session).to receive(:get).with(url).and_return(ok_response(document)) }
+      before { allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document)) }
 
       it 'returns a public ClientRegistration that requires PKCE' do
         result = provider.collect(id: url)
@@ -108,13 +115,13 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
 
       it 'fetches an id matching a String entry' do
         allowed = 'https://allowed.example.com/meta'
-        allow(session).to receive(:get).with(allowed).and_return(ok_response(document.merge(client_id: allowed)))
+        allow(session).to receive(:get).with(allowed, stream: true).and_return(ok_response(document.merge(client_id: allowed)))
         expect(provider.collect(id: allowed).size).to eq(1)
       end
 
       it 'fetches an id matching a Regexp entry' do
         allowed = 'https://re.example.com/anything'
-        allow(session).to receive(:get).with(allowed).and_return(ok_response(document.merge(client_id: allowed)))
+        allow(session).to receive(:get).with(allowed, stream: true).and_return(ok_response(document.merge(client_id: allowed)))
         expect(provider.collect(id: allowed).size).to eq(1)
       end
 
@@ -126,46 +133,46 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
 
     context 'when the document is invalid' do
       it 'rejects when client_id does not match the URL' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document.merge(client_id: 'https://evil.example.com/x')))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document.merge(client_id: 'https://evil.example.com/x')))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects a shared-secret token_endpoint_auth_method' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document.merge(token_endpoint_auth_method: 'client_secret_basic')))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document.merge(token_endpoint_auth_method: 'client_secret_basic')))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects when client_secret is present' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document.merge(client_secret: 'nope')))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document.merge(client_secret: 'nope')))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects dangerous redirect_uri schemes' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document.merge(redirect_uris: %w(javascript:alert(1)))))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document.merge(redirect_uris: %w(javascript:alert(1)))))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects malformed JSON' do
-        allow(session).to receive(:get).with(url).and_return(ok_response('{not json', headers: {'content-type' => 'application/json'}))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response('{not json', headers: {'content-type' => 'application/json'}))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects a non-JSON content-type' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document, headers: {'content-type' => 'text/html'}))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document, headers: {'content-type' => 'text/html'}))
         expect(provider.collect(id: url)).to eq([])
       end
     end
 
     context 'with HTTP-level problems' do
       it 'rejects a non-200 status' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document, status: 302))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document, status: 302))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects when the transport raises (e.g. SSRF block)' do
         resp = instance_double('HTTPX::ErrorResponse')
         allow(resp).to receive(:raise_for_status).and_raise(HTTPX::Error.new('blocked'))
-        allow(session).to receive(:get).with(url).and_return(resp)
+        allow(session).to receive(:get).with(url, stream: true).and_return(resp)
         expect(provider.collect(id: url)).to eq([])
       end
     end
@@ -174,35 +181,55 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
       let(:options) { {max_response_size: 50} }
 
       it 'rejects when Content-Length exceeds the limit' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document, headers: {'content-length' => '999'}))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document, headers: {'content-length' => '999'}))
         expect(provider.collect(id: url)).to eq([])
       end
 
       it 'rejects when the body exceeds the limit' do
         # the document JSON is well over 50 bytes and carries no Content-Length header here
-        allow(session).to receive(:get).with(url).and_return(ok_response(document))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document))
         expect(provider.collect(id: url)).to eq([])
+      end
+
+      it 'aborts mid-stream once the cap is exceeded, without consuming the whole body' do
+        chunks_yielded = 0
+        streamed = Object.new
+        streamed.define_singleton_method(:status) { 200 }
+        streamed.define_singleton_method(:headers) { {'content-type' => 'application/json'} }
+        streamed.define_singleton_method(:raise_for_status) { self }
+        # No Content-Length; an unbounded chunked stream. The provider must stop reading shortly
+        # after the cap rather than draining this forever.
+        streamed.define_singleton_method(:each) do |&blk|
+          loop do
+            chunks_yielded += 1
+            blk.call('x' * 40)
+          end
+        end
+        allow(session).to receive(:get).with(url, stream: true).and_return(streamed)
+
+        expect(provider.collect(id: url)).to eq([])
+        expect(chunks_yielded).to eq(2) # 40 bytes ok, 80 bytes trips the 50-byte cap
       end
     end
 
     context 'caching' do
       it 'serves a second lookup from cache without re-fetching' do
-        expect(session).to receive(:get).with(url).once.and_return(ok_response(document, headers: {'cache-control' => 'max-age=300'}))
+        expect(session).to receive(:get).with(url, stream: true).once.and_return(ok_response(document, headers: {'cache-control' => 'max-age=300'}))
         first = provider.collect(id: url).first
         second = provider.collect(id: url).first
         expect(second).to equal(first)
       end
 
       it 'does not cache error responses' do
-        allow(session).to receive(:get).with(url).and_return(ok_response(document, status: 500))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document, status: 500))
         expect(provider.collect(id: url)).to eq([])
         # a subsequent success is served (proving the failure was not cached)
-        allow(session).to receive(:get).with(url).and_return(ok_response(document))
+        allow(session).to receive(:get).with(url, stream: true).and_return(ok_response(document))
         expect(provider.collect(id: url).size).to eq(1)
       end
 
       it 'does not cache when Cache-Control is no-store' do
-        expect(session).to receive(:get).with(url).twice.and_return(ok_response(document, headers: {'cache-control' => 'no-store'}))
+        expect(session).to receive(:get).with(url, stream: true).twice.and_return(ok_response(document, headers: {'cache-control' => 'no-store'}))
         provider.collect(id: url)
         provider.collect(id: url)
       end
@@ -220,8 +247,8 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         url_a = 'https://a.example.com/meta'
         url_b = 'https://b.example.com/meta'
 
-        expect(session).to receive(:get).with(url_a).and_return(ok_response(doc_for(url_a))).twice
-        allow(session).to receive(:get).with(url_b).and_return(ok_response(doc_for(url_b)))
+        expect(session).to receive(:get).with(url_a, stream: true).and_return(ok_response(doc_for(url_a))).twice
+        allow(session).to receive(:get).with(url_b, stream: true).and_return(ok_response(doc_for(url_b)))
 
         provider.collect(id: url_a) # cached
         provider.collect(id: url_b) # pushes total over the limit, evicts url_a (oldest)

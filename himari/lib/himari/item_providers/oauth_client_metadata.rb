@@ -92,7 +92,11 @@ module Himari
       end
 
       private def fetch_and_build(url)
-        resp = @session.get(url)
+        # stream: true must be passed to the request (not preset on the session via .with, which
+        # would yield an already-buffered Response with no #each). It returns a StreamResponse:
+        # status and headers are inspected first, then the body is consumed under a hard byte cap
+        # below, without buffering the whole body up front.
+        resp = @session.get(url, stream: true)
         # Surfaces transport/SSRF failures (HTTPX::Error) and HTTP >= 400. The draft also forbids
         # following redirects, so anything other than 200 (including 3xx) is an error too.
         resp.raise_for_status
@@ -100,16 +104,32 @@ module Himari
 
         content_length = resp.headers['content-length']
         raise FetchError, 'response exceeds maximum size' if content_length && content_length.to_i > @max_response_size
-
-        body = resp.body.to_s
-        raise FetchError, 'response exceeds maximum size' if body.bytesize > @max_response_size
         raise FetchError, 'unexpected content-type' unless json_content_type?(resp.headers['content-type'])
+
+        body = read_capped_body(resp)
 
         doc = JSON.parse(body, symbolize_names: true)
         registration = build_registration(doc, url)
         # The whole document is safe to log: it is size-capped and client_secret* is rejected.
         @logger&.info(Himari::LogLine.new('OauthClientMetadata: fetched', client_id: url, metadata: doc))
         [registration, compute_ttl(resp), body.bytesize]
+      end
+
+      # Stream the body and abort as soon as it exceeds the cap. The client_id URL is
+      # attacker-influenced and HTTPX has no hard body limit, so a malicious host could omit
+      # Content-Length and stream an unbounded response; capping during the read (rather than
+      # after buffering the whole body) prevents that memory/disk exhaustion.
+      #
+      # FIXME: this streaming read is a workaround for the lack of a built-in maximum body size in
+      # HTTPX. Replace it with a native body cap once available:
+      # https://gitlab.com/os85/httpx/-/work_items/383
+      private def read_capped_body(resp)
+        body = +''
+        resp.each do |chunk|
+          body << chunk
+          raise FetchError, 'response exceeds maximum size' if body.bytesize > @max_response_size
+        end
+        body
       end
 
       private def build_registration(doc, url)
