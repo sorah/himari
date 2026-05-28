@@ -176,8 +176,10 @@ module Himari
         end
 
         # Rotate the token in place; verify! above recorded which secret the client presented,
-        # which rotate keeps valid as the previous one.
-        rotated = refresh.rotate(claims: downstream.claims, openid: refresh.openid, lifetime: downstream.lifetime.refresh_token)
+        # which rotate keeps valid as the previous one. The token's original expiry is
+        # preserved (absolute cap); the lifetime guard above only gates whether refresh is
+        # still permitted by the rules, not how long the rotated token lives.
+        rotated = refresh.rotate(claims: downstream.claims, openid: refresh.openid)
 
         # Compare-and-swap on the version we read. A concurrent refresh that already rotated
         # this token bumps the version, so the loser's write conflicts. Reject the loser

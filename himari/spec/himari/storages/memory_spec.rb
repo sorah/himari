@@ -16,14 +16,14 @@ RSpec.describe Himari::Storages::Memory do
 
     it "writes when the stored version matches" do
       token.verify_secret!(token.secret)
-      rotated = token.rotate(claims: {sub: 'c'}, openid: false, lifetime: 7200)
+      rotated = token.rotate(claims: {sub: 'c'}, openid: false)
       storage.put_refresh_token(rotated, if_version: token.version)
       expect(storage.find_refresh_token(token.handle).version).to eq(rotated.version)
     end
 
     it "raises Conflict when the stored version does not match" do
       token.verify_secret!(token.secret)
-      rotated = token.rotate(claims: {sub: 'c'}, openid: false, lifetime: 7200)
+      rotated = token.rotate(claims: {sub: 'c'}, openid: false)
       expect { storage.put_refresh_token(rotated, if_version: token.version + 1) }.to raise_error(Himari::Storages::Base::Conflict)
     end
 

@@ -60,18 +60,19 @@ RSpec.describe Himari::RefreshToken do
 
     subject(:rotated) do
       original.verify_secret!(original.secret)
-      original.rotate(claims: {sub: 'c2'}, openid: true, lifetime: 3600, now: Time.at(1_700_000_000))
+      original.rotate(claims: {sub: 'c2'}, openid: true, now: Time.at(1_700_000_000))
     end
 
     specify "raises without a prior verify!" do
-      expect { original.rotate(claims: {sub: 'c2'}, openid: true, lifetime: 3600) }.to raise_error(Himari::TokenString::SecretMissing)
+      expect { original.rotate(claims: {sub: 'c2'}, openid: true) }.to raise_error(Himari::TokenString::SecretMissing)
     end
 
-    specify "keeps the handle, bumps version, slides expiry" do
+    specify "keeps the handle, bumps version, preserves expiry" do
       expect(rotated.handle).to eq(original.handle)
       expect(rotated.version).to eq(original.version + 1)
       expect(rotated.updated_at).to eq(1_700_000_000)
-      expect(rotated.expiry).to eq(1_700_000_000 + 3600)
+      # expiry is the absolute cap from initial issuance, not slid forward on rotation
+      expect(rotated.expiry).to eq(original.expiry)
       expect(rotated.claims).to eq(sub: 'c2')
     end
 

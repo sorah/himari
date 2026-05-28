@@ -38,8 +38,9 @@ module Himari
     # lost can retry with the secret it still holds. The secret to keep is the hash verify!
     # matched (TokenString#verification) — whichever slot the client used; rotate is therefore
     # only valid after a successful verify!. version is bumped so a concurrent refresh against
-    # the version we read fails the conditional update; expiry slides forward.
-    def rotate(claims:, openid:, lifetime:, now: Time.now)
+    # the version we read fails the conditional update. expiry is preserved: the initial
+    # lifetime is an absolute cap on the rotation chain, not slid forward on each refresh.
+    def rotate(claims:, openid:, now: Time.now)
       raise TokenString::SecretMissing, "rotate requires a verified secret; call verify! first" unless verification
 
       self.class.new(
@@ -52,7 +53,7 @@ module Himari
         secret_hash_prev: verification.secret_hash,
         version: version + 1,
         updated_at: now.to_i,
-        expiry: now.to_i + lifetime,
+        expiry:,
       )
     end
 

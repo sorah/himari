@@ -37,6 +37,13 @@ use(Himari::Middlewares::AuthorizationRule, name: 'lifetime') do |context, decis
 end
 ```
 
+`lifetime.refresh_token` is an **absolute cap** set at initial issuance. Rotation
+preserves the token's original `expires_at` rather than sliding it forward, so a
+rotation chain dies 30 days after sign-in regardless of how often it refreshes.
+On each refresh the rules still re-evaluate `lifetime.refresh_token`, but it
+gates only whether refresh is *still permitted* (omitting it rejects the
+refresh) — it does not extend the chain.
+
 ## `refresh_info`: the revalidation snapshot
 
 On a refresh request there is no OmniAuth callback — `context.auth` is `nil`.
