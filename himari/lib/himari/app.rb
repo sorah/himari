@@ -255,13 +255,17 @@ module Himari
       delete(path, &register_ep)
     end
 
-    get '/.well-known/openid-configuration' do
+    metadata_ep = proc do
       Himari::Services::OidcProviderMetadataEndpoint.new(
         signing_key_provider: signing_key_provider,
         issuer: config.issuer,
         registration_endpoint: dynamic_clients_enabled? ? "#{config.issuer}/public/oidc/register" : nil,
       ).call(env)
     end
+    # OpenID Connect Discovery 1.0
+    get '/.well-known/openid-configuration', &metadata_ep
+    # RFC 8414 OAuth 2.0 Authorization Server Metadata
+    get '/.well-known/oauth-authorization-server', &metadata_ep
 
     omniauth_callback = proc do
       authhash = request.env['omniauth.auth']
