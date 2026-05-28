@@ -134,6 +134,8 @@ run Himari::App
 ## Documentation
 
 - [docs/refresh-tokens.md](./docs/refresh-tokens.md): Enabling the refresh token grant and revalidating sessions on refresh
+- [docs/dynamic-client-registrations.md](./docs/dynamic-client-registrations.md): RFC 7591 Dynamic Client Registration — let clients register themselves at runtime
+- [docs/metadata-client-registrations.md](./docs/metadata-client-registrations.md): Client ID Metadata Document — accept an https URL `client_id` pointing to a hosted metadata document
 
 ## Usage
 
