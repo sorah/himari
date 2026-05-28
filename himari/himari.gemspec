@@ -36,6 +36,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "sinatra", '>= 3.0'
 
   spec.add_dependency 'addressable'
+  spec.add_dependency 'concurrent-ruby'
   spec.add_dependency 'httpx'
 
   spec.add_dependency "openid_connect"

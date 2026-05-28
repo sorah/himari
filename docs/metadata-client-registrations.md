@@ -57,6 +57,10 @@ use(Himari::Middlewares::MetadataClients,
   cache_min_ttl: 60,
   cache_max_ttl: 86400,
   cache_default_ttl: 300,
+
+  # Approximate cap (bytes) on the total size of cached documents. When exceeded,
+  # the oldest entries are evicted until the total fits. Default 1 MiB.
+  cache_max_total_size: 1_048_576,
 )
 ```
 
@@ -127,6 +131,10 @@ response's `Cache-Control: max-age` or `Expires`, clamped to
 `[cache_min_ttl, cache_max_ttl]`; `no-store` / `no-cache` disables caching for
 that document. Errors and malformed documents are never cached. The cache and
 its HTTPX session live for the process lifetime, so they reset on redeploy.
+
+The cache is bounded by `cache_max_total_size`: it tracks the approximate total
+size of cached documents (by original JSON body bytes) and, once that budget is
+exceeded, evicts the oldest entries until the total fits again.
 
 ## SSRF considerations
 

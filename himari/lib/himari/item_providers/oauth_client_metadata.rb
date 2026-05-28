@@ -3,6 +3,8 @@
 require 'json'
 require 'time'
 require 'addressable/uri'
+require 'concurrent/map'
+require 'concurrent/atomic/atomic_fixnum'
 require 'httpx'
 
 require 'himari/log_line'
@@ -27,12 +29,12 @@ module Himari
       class FetchError < StandardError; end
       class InvalidDocument < StandardError; end
 
-      CacheEntry = Struct.new(:value, :expires_at)
+      CacheEntry = Struct.new(:value, :expires_at, :size, :seq)
 
       # @param session [HTTPX::Session] persistent, SSRF-filtered session (built by the middleware)
       # @param allowed_client_ids [Array<String, Regexp>] empty = allow any compliant https URL
       def initialize(session:, allowed_client_ids: [], require_pkce: true, max_response_size: 5120,
-        cache_min_ttl: 60, cache_max_ttl: 86400, cache_default_ttl: 300, logger: nil)
+        cache_min_ttl: 60, cache_max_ttl: 86400, cache_default_ttl: 300, cache_max_total_size: 1_048_576, logger: nil)
         @session = session
         @allowed_client_ids = allowed_client_ids
         @require_pkce = require_pkce
@@ -40,9 +42,11 @@ module Himari
         @cache_min_ttl = cache_min_ttl
         @cache_max_ttl = cache_max_ttl
         @cache_default_ttl = cache_default_ttl
+        @cache_max_total_size = cache_max_total_size
         @logger = logger
-        @cache = {}
-        @mutex = Mutex.new
+        @cache = Concurrent::Map.new
+        @cache_total_size = Concurrent::AtomicFixnum.new(0)
+        @cache_seq = Concurrent::AtomicFixnum.new(0)
       end
 
       def collect(id: nil, **_hint)
@@ -53,8 +57,8 @@ module Himari
         cached = cache_get(id)
         return [cached] if cached
 
-        registration, ttl = fetch_and_build(id)
-        cache_put(id, registration, ttl) if ttl.positive?
+        registration, ttl, size = fetch_and_build(id)
+        cache_put(id, registration, ttl, size) if ttl.positive?
         [registration]
       rescue HTTPX::Error, FetchError, InvalidDocument, JSON::ParserError, Himari::DynamicClientRegistration::ValidationError => e
         @logger&.warn(Himari::LogLine.new('OauthClientMetadata: client_id rejected', client_id: id, error: e.message))
@@ -105,7 +109,7 @@ module Himari
         registration = build_registration(doc, url)
         # The whole document is safe to log: it is size-capped and client_secret* is rejected.
         @logger&.info(Himari::LogLine.new('OauthClientMetadata: fetched', client_id: url, metadata: doc))
-        [registration, compute_ttl(resp)]
+        [registration, compute_ttl(resp), body.bytesize]
       end
 
       private def build_registration(doc, url)
@@ -151,23 +155,39 @@ module Himari
       end
 
       private def cache_get(id)
-        @mutex.synchronize do
-          entry = @cache[id]
-          next nil unless entry
+        entry = @cache[id]
+        return unless entry
+        return entry.value if entry.expires_at > Time.now.to_f
 
-          if entry.expires_at > Time.now.to_f
-            entry.value
-          else
-            @cache.delete(id)
-            nil
-          end
+        forget(id, entry)
+        nil
+      end
+
+      private def cache_put(id, value, ttl, size)
+        entry = CacheEntry.new(value, Time.now.to_f + ttl, size, @cache_seq.increment)
+        previous = @cache[id]
+        @cache[id] = entry
+        delta = size - (previous&.size || 0)
+        @cache_total_size.update { |total| total + delta }
+        evict_until_within_limit
+      end
+
+      # Drop the oldest (lowest seq) entries until the tracked total body size fits the limit.
+      # Sizes are approximate (original JSON body bytes); concurrent eviction may overshoot a
+      # little, which is acceptable for a cache.
+      private def evict_until_within_limit
+        while @cache_total_size.value > @cache_max_total_size
+          oldest = @cache.each_pair.min_by { |_id, entry| entry.seq }
+          break unless oldest
+
+          forget(*oldest)
         end
       end
 
-      private def cache_put(id, value, ttl)
-        @mutex.synchronize do
-          @cache[id] = CacheEntry.new(value, Time.now.to_f + ttl)
-        end
+      private def forget(id, entry)
+        return unless @cache.delete_pair(id, entry)
+
+        @cache_total_size.update { |total| total - entry.size }
       end
     end
   end

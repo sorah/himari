@@ -207,5 +207,26 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         provider.collect(id: url)
       end
     end
+
+    context 'when the cached total size exceeds the limit' do
+      # each document body is ~120 bytes, so a 200-byte budget holds at most one entry
+      let(:options) { {cache_max_total_size: 200} }
+
+      def doc_for(u)
+        {client_id: u, redirect_uris: %w(https://client.example.com/callback), token_endpoint_auth_method: 'none'}
+      end
+
+      it 'evicts the oldest entry so it must be re-fetched' do
+        url_a = 'https://a.example.com/meta'
+        url_b = 'https://b.example.com/meta'
+
+        expect(session).to receive(:get).with(url_a).and_return(ok_response(doc_for(url_a))).twice
+        allow(session).to receive(:get).with(url_b).and_return(ok_response(doc_for(url_b)))
+
+        provider.collect(id: url_a) # cached
+        provider.collect(id: url_b) # pushes total over the limit, evicts url_a (oldest)
+        provider.collect(id: url_a) # cache miss -> second fetch of url_a
+      end
+    end
   end
 end

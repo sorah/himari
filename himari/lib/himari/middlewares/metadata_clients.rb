@@ -29,13 +29,15 @@ module Himari
     # - http_timeout [Hash] HTTPX timeout options.
     # - max_response_size [Integer] reject documents larger than this many bytes (default 5 KiB).
     # - cache_min_ttl / cache_max_ttl / cache_default_ttl [Integer] cache bounds in seconds.
+    # - cache_max_total_size [Integer] approximate cap on total cached document bytes; the oldest
+    #   entries are evicted once exceeded (default 1 MiB).
     class MetadataClients
       RACK_KEY = 'himari.metadata_clients'
 
       DEFAULT_USER_AGENT = "Himari-OauthClientMetadataFetch/#{Himari::VERSION} (+https://github.com/sorah/himari)"
       DEFAULT_HTTP_TIMEOUT = {connect_timeout: 5, request_timeout: 10}.freeze
 
-      Options = Data.define(:allowed_client_ids, :require_pkce, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl)
+      Options = Data.define(:allowed_client_ids, :require_pkce, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
 
       def initialize(app, kwargs = {})
         @app = app
@@ -49,6 +51,7 @@ module Himari
           cache_min_ttl: kwargs.fetch(:cache_min_ttl, 60),
           cache_max_ttl: kwargs.fetch(:cache_max_ttl, 86400),
           cache_default_ttl: kwargs.fetch(:cache_default_ttl, 300),
+          cache_max_total_size: kwargs.fetch(:cache_max_total_size, 1_048_576),
         )
         @provider = Himari::ItemProviders::OauthClientMetadata.new(
           session: build_session(@options),
@@ -58,6 +61,7 @@ module Himari
           cache_min_ttl: @options.cache_min_ttl,
           cache_max_ttl: @options.cache_max_ttl,
           cache_default_ttl: @options.cache_default_ttl,
+          cache_max_total_size: @options.cache_max_total_size,
           logger: kwargs[:logger],
         )
       end
