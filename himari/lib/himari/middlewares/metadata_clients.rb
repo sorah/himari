@@ -22,6 +22,8 @@ module Himari
     # - allowed_client_ids [Array<String, Regexp>] empty (default) accepts any compliant https
     #   URL; otherwise a client_id must match an entry (String exact, Regexp =~).
     # - require_pkce [Boolean] force PKCE for metadata clients (default true; they are public).
+    # - ignore_localhost_redirect_uri_port [Boolean] relax the port of loopback redirect_uris when
+    #   matching at the authorization endpoint (default true; see RFC 8252 §7.3).
     # - ssrf [true, false, Hash] SSRF filtering. true (default) restricts to https; a Hash is
     #   merged into the ssrf_filter plugin options (e.g. allowed_schemes); false disables it
     #   (only for an authorization server running on a loopback address).
@@ -39,13 +41,14 @@ module Himari
       # would let a slow sender hold the fetch open indefinitely.
       DEFAULT_HTTP_TIMEOUT = {connect_timeout: 5, request_timeout: 10, read_timeout: 10}.freeze
 
-      Options = Data.define(:allowed_client_ids, :require_pkce, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
+      Options = Data.define(:allowed_client_ids, :require_pkce, :ignore_localhost_redirect_uri_port, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
 
       def initialize(app, kwargs = {})
         @app = app
         @options = Options.new(
           allowed_client_ids: kwargs.fetch(:allowed_client_ids, []),
           require_pkce: kwargs.fetch(:require_pkce, true),
+          ignore_localhost_redirect_uri_port: kwargs.fetch(:ignore_localhost_redirect_uri_port, true),
           ssrf: kwargs.fetch(:ssrf, true),
           user_agent: kwargs.fetch(:user_agent, DEFAULT_USER_AGENT),
           http_timeout: kwargs.fetch(:http_timeout, DEFAULT_HTTP_TIMEOUT),
@@ -59,6 +62,7 @@ module Himari
           session: build_session(@options),
           allowed_client_ids: @options.allowed_client_ids,
           require_pkce: @options.require_pkce,
+          ignore_localhost_redirect_uri_port: @options.ignore_localhost_redirect_uri_port,
           max_response_size: @options.max_response_size,
           cache_min_ttl: @options.cache_min_ttl,
           cache_max_ttl: @options.cache_max_ttl,

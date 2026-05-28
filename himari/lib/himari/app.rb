@@ -246,6 +246,7 @@ module Himari
       Himari::Services::ClientRegistrationEndpoint.new(
         storage: config.storage,
         registration_lifetime: request.env[Himari::Middlewares::DynamicClients::RACK_KEY].registration_lifetime,
+        ignore_localhost_redirect_uri_port: request.env[Himari::Middlewares::DynamicClients::RACK_KEY].ignore_localhost_redirect_uri_port,
         logger: logger,
       ).call(env)
     end

@@ -43,6 +43,7 @@ That single line:
 ```ruby
 use(Himari::Middlewares::DynamicClients,
   registration_lifetime: 180 * 86400, # seconds a registration stays valid (default 180 days)
+  ignore_localhost_redirect_uri_port: true, # (default) relax loopback redirect_uri ports (below)
 )
 ```
 
@@ -148,7 +149,13 @@ lookup as `Himari::Middlewares::Client`, but:
   not desired.
 - **Secrets are write-once.** Only the SHA-384 hash is stored; a lost secret
   means re-registering.
-- **`redirect_uris` are matched exactly** at authorize time, as with static
-  clients.
+- **`redirect_uris` are matched by simple string comparison** at authorize
+  time, as with static clients. The one exception is loopback redirect URIs
+  (`http`/`https` on `localhost`, `127.0.0.1`, `[::1]`): when
+  `ignore_localhost_redirect_uri_port` is enabled (default) their port is
+  ignored, so a native app that obtains an ephemeral port at runtime can match
+  (RFC 8252 §7.3, draft-ietf-oauth-v2-1-15 §8.4.2). This is a deployment policy
+  set on the middleware, not a per-client metadata field; clients cannot request
+  it. Set it to `false` to require exact port matching.
 
 See [dev/config.ru](../dev/config.ru) for a working local configuration.

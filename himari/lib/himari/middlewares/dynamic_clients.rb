@@ -17,13 +17,16 @@ module Himari
     class DynamicClients
       RACK_KEY = 'himari.dynamic_clients'
 
-      Options = Data.define(:registration_lifetime, :grant_types_supported, :response_types_supported, :token_endpoint_auth_methods_supported)
+      Options = Data.define(:registration_lifetime, :ignore_localhost_redirect_uri_port, :grant_types_supported, :response_types_supported, :token_endpoint_auth_methods_supported)
 
       # @param registration_lifetime [Integer] seconds a registration stays valid (default 180 days)
+      # @param ignore_localhost_redirect_uri_port [Boolean] relax the port of loopback redirect_uris
+      #   for registered clients (default true; see RFC 8252 §7.3)
       def initialize(app, kwargs = {})
         @app = app
         @options = Options.new(
           registration_lifetime: kwargs.fetch(:registration_lifetime) { Himari::DynamicClientRegistration::REGISTRATION_LIFETIME },
+          ignore_localhost_redirect_uri_port: kwargs.fetch(:ignore_localhost_redirect_uri_port, true),
           grant_types_supported: Himari::DynamicClientRegistration::SUPPORTED_GRANT_TYPES,
           response_types_supported: Himari::DynamicClientRegistration::SUPPORTED_RESPONSE_TYPES,
           token_endpoint_auth_methods_supported: Himari::DynamicClientRegistration::SUPPORTED_TOKEN_ENDPOINT_AUTH_METHODS,

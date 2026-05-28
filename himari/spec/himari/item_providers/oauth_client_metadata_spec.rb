@@ -56,6 +56,18 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         expect(client.match_hint?(id: url)).to eq(true)
       end
 
+      it 'enables ignore_localhost_redirect_uri_port by default' do
+        expect(provider.collect(id: url).first.ignore_localhost_redirect_uri_port).to eq(true)
+      end
+
+      context 'with ignore_localhost_redirect_uri_port disabled' do
+        let(:options) { {ignore_localhost_redirect_uri_port: false} }
+
+        it 'carries the configured value onto the registration' do
+          expect(provider.collect(id: url).first.ignore_localhost_redirect_uri_port).to eq(false)
+        end
+      end
+
       context 'with a logger' do
         let(:logger) { instance_double('Logger') }
         let(:options) { {logger: logger} }

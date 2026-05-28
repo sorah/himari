@@ -41,6 +41,11 @@ use(Himari::Middlewares::MetadataClients,
   # Force PKCE for these clients. Default true; they are always public.
   require_pkce: true,
 
+  # Relax the port of loopback redirect_uris (http/https on localhost, 127.0.0.1,
+  # [::1]) when matching at the authorization endpoint, so native apps using an
+  # ephemeral port match (RFC 8252 §7.3). Default true; set false for exact ports.
+  ignore_localhost_redirect_uri_port: true,
+
   # SSRF filtering. true (default) restricts fetches to https and blocks
   # special-use IPs. A Hash is merged into the ssrf_filter plugin options.
   # false disables filtering — only for an authorization server on loopback.

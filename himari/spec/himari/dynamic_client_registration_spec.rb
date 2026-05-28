@@ -198,6 +198,30 @@ RSpec.describe Himari::DynamicClientRegistration do
     end
   end
 
+  describe "ignore_localhost_redirect_uri_port" do
+    it "defaults to true" do
+      client = described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'none'})
+      expect(client.ignore_localhost_redirect_uri_port).to eq(true)
+    end
+
+    it "honours an override from the registration policy" do
+      client = described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'none'}, ignore_localhost_redirect_uri_port: false)
+      expect(client.ignore_localhost_redirect_uri_port).to eq(false)
+    end
+
+    it "is not taken from client-supplied metadata" do
+      client = described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'none', ignore_localhost_redirect_uri_port: false})
+      expect(client.ignore_localhost_redirect_uri_port).to eq(true)
+    end
+
+    it "round-trips through as_json/from_json and to_client_registration" do
+      client = described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'none'}, ignore_localhost_redirect_uri_port: false)
+      restored = described_class.from_json(client.as_json)
+      expect(restored.ignore_localhost_redirect_uri_port).to eq(false)
+      expect(restored.to_client_registration.ignore_localhost_redirect_uri_port).to eq(false)
+    end
+  end
+
   describe "JSON round-trip" do
     subject(:client) do
       described_class.register(metadata: {redirect_uris: redirect_uris, token_endpoint_auth_method: 'client_secret_basic', client_name: 'cli', scope: 'openid'})

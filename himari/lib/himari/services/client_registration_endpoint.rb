@@ -13,10 +13,13 @@ module Himari
     class ClientRegistrationEndpoint
       # @param storage [Himari::Storages::Base]
       # @param registration_lifetime [Integer] seconds a registration stays valid
+      # @param ignore_localhost_redirect_uri_port [Boolean] relax loopback redirect_uri ports for
+      #   registered clients (default true; see RFC 8252 §7.3)
       # @param logger [Logger, nil]
-      def initialize(storage:, registration_lifetime: Himari::DynamicClientRegistration::REGISTRATION_LIFETIME, logger: nil)
+      def initialize(storage:, registration_lifetime: Himari::DynamicClientRegistration::REGISTRATION_LIFETIME, ignore_localhost_redirect_uri_port: true, logger: nil)
         @storage = storage
         @registration_lifetime = registration_lifetime
+        @ignore_localhost_redirect_uri_port = ignore_localhost_redirect_uri_port
         @logger = logger
       end
 
@@ -34,6 +37,7 @@ module Himari
         client = Himari::DynamicClientRegistration.register(
           metadata: metadata,
           lifetime: @registration_lifetime,
+          ignore_localhost_redirect_uri_port: @ignore_localhost_redirect_uri_port,
           registration_ip: request.ip,
           registration_remote_addr: env['REMOTE_ADDR'],
           registration_x_forwarded_for: env['HTTP_X_FORWARDED_FOR'],

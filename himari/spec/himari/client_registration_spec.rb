@@ -54,4 +54,73 @@ RSpec.describe Himari::ClientRegistration do
       expect(client.match_hint?(id: 'b')).to eq(false)
     end
   end
+
+  describe "#redirect_uri_covers?" do
+    let(:client) { described_class.new(id: 'a', redirect_uris:, confidential: false) }
+
+    context "with a regular redirect_uri" do
+      let(:redirect_uris) { ['https://rp.invalid/cb'] }
+
+      it "matches only on exact string comparison" do
+        expect(client.redirect_uri_covers?('https://rp.invalid/cb')).to eq(true)
+        expect(client.redirect_uri_covers?('https://rp.invalid/cb?x=1')).to eq(false)
+        expect(client.redirect_uri_covers?('https://rp.invalid/other')).to eq(false)
+        expect(client.redirect_uri_covers?('https://attacker.invalid/cb')).to eq(false)
+        expect(client.redirect_uri_covers?(nil)).to eq(false)
+        expect(client.redirect_uri_covers?('')).to eq(false)
+      end
+    end
+
+    context "with ignore_localhost_redirect_uri_port enabled (default)" do
+      let(:redirect_uris) { ['http://127.0.0.1/cb'] }
+
+      it "defaults to true" do
+        expect(client.ignore_localhost_redirect_uri_port).to eq(true)
+      end
+
+      %w(127.0.0.1 [::1] localhost).each do |host|
+        context "with loopback host #{host} over http" do
+          let(:redirect_uris) { ["http://#{host}/cb"] }
+
+          it "ignores the port" do
+            expect(client.redirect_uri_covers?("http://#{host}/cb")).to eq(true)
+            expect(client.redirect_uri_covers?("http://#{host}:54321/cb")).to eq(true)
+            expect(client.redirect_uri_covers?("http://#{host}:0/cb")).to eq(true)
+          end
+
+          it "still requires scheme, host, path and query to match" do
+            expect(client.redirect_uri_covers?("https://#{host}:54321/cb")).to eq(false)
+            expect(client.redirect_uri_covers?("http://#{host}:54321/other")).to eq(false)
+            expect(client.redirect_uri_covers?("http://#{host}:54321/cb?x=1")).to eq(false)
+          end
+        end
+      end
+
+      context "with a loopback host over https" do
+        let(:redirect_uris) { ['https://localhost/cb'] }
+
+        it "also ignores the port" do
+          expect(client.redirect_uri_covers?('https://localhost:8443/cb')).to eq(true)
+        end
+      end
+
+      context "with a non-loopback host" do
+        let(:redirect_uris) { ['https://rp.invalid:443/cb'] }
+
+        it "does not ignore the port" do
+          expect(client.redirect_uri_covers?('https://rp.invalid:8443/cb')).to eq(false)
+        end
+      end
+    end
+
+    context "with ignore_localhost_redirect_uri_port disabled" do
+      let(:client) { described_class.new(id: 'a', redirect_uris:, confidential: false, ignore_localhost_redirect_uri_port: false) }
+      let(:redirect_uris) { ['http://127.0.0.1:3000/cb'] }
+
+      it "requires exact loopback port match" do
+        expect(client.redirect_uri_covers?('http://127.0.0.1:3000/cb')).to eq(true)
+        expect(client.redirect_uri_covers?('http://127.0.0.1:54321/cb')).to eq(false)
+      end
+    end
+  end
 end

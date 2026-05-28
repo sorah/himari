@@ -6,6 +6,7 @@ require 'base64'
 require 'addressable'
 require 'rack/null_logger'
 require 'himari/services/oidc_authorization_endpoint'
+require 'himari/client_registration'
 require 'himari/storages/memory'
 require 'himari/authorization_code'
 
@@ -14,7 +15,8 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
 
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}) }
   let(:require_pkce) { false }
-  let(:client) { double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], as_log: {client_as_log: 1}, require_pkce:) }
+  let(:redirect_uris) { ['https://rp.invalid/cb'] }
+  let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:) }
   let(:storage) { Himari::Storages::Memory.new }
   let(:logger) { Rack::NullLogger.new(nil) }
 
@@ -163,6 +165,34 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
       stored = storage.find_authorization(Addressable::URI.parse(last_response.headers['location']).query_values['code'])
       expect(stored.offline_access).to eq(false)
+    end
+  end
+
+  context "with a mismatched redirect_uri" do
+    it "returns invalid_request without redirecting" do
+      get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Fattacker.invalid%2Fcb&nonce=nn'
+      expect(last_response.status).to eq(400)
+    end
+  end
+
+  context "with a loopback redirect_uri using an ephemeral port" do
+    let(:redirect_uris) { ['http://127.0.0.1/cb'] }
+
+    it "accepts any port and stores the actual redirect_uri" do
+      get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=http%3A%2F%2F127.0.0.1%3A54321%2Fcb&nonce=nn'
+      expect(last_response.status).to eq(302)
+      query = Addressable::URI.parse(last_response.headers['location']).query_values
+      stored = storage.find_authorization(query['code'])
+      expect(stored.redirect_uri).to eq('http://127.0.0.1:54321/cb')
+    end
+
+    context "when ignore_localhost_redirect_uri_port is disabled" do
+      let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, ignore_localhost_redirect_uri_port: false) }
+
+      it "rejects a differing port" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=http%3A%2F%2F127.0.0.1%3A54321%2Fcb&nonce=nn'
+        expect(last_response.status).to eq(400)
+      end
     end
   end
 end

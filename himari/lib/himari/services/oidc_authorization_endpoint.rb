@@ -40,7 +40,19 @@ module Himari
           end
           raise "[BUG] client.id != authz.cilent_id" unless @authz.client_id == @client.id
 
-          res.redirect_uri = req.verify_redirect_uri!(@client.redirect_uris)
+          given_redirect_uri = req.redirect_uri&.to_s
+          res.redirect_uri = if given_redirect_uri && !given_redirect_uri.empty?
+            # Raise before recording the redirect_uri so we never redirect errors to an unverified URI.
+            next req.bad_request!(:invalid_request, '"redirect_uri" mismatch') unless @client.redirect_uri_covers?(given_redirect_uri)
+
+            given_redirect_uri
+          elsif @client.redirect_uris.size == 1
+            @client.redirect_uris.first
+          else
+            next req.bad_request!(:invalid_request, '"redirect_uri" missing')
+          end
+          # rack-oauth2 redirects subsequent errors back to the verified redirect_uri via this accessor.
+          req.verified_redirect_uri = res.redirect_uri
 
           req.unsupported_response_type! if res.protocol_params_location == :fragment
           req.bad_request!(:request_uri_not_supported, "Request Object is not implemented") if req.request_uri || req.request

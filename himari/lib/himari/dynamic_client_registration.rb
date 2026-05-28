@@ -39,7 +39,7 @@ module Himari
     #
     # @param metadata [Hash] parsed client metadata (symbolized keys) from the request body
     # @return [DynamicClientRegistration]
-    def self.register(metadata:, registration_ip: nil, registration_remote_addr: nil, registration_x_forwarded_for: nil, lifetime: REGISTRATION_LIFETIME, now: Time.now)
+    def self.register(metadata:, registration_ip: nil, registration_remote_addr: nil, registration_x_forwarded_for: nil, lifetime: REGISTRATION_LIFETIME, ignore_localhost_redirect_uri_port: true, now: Time.now)
       raise ValidationError.new(:invalid_client_metadata, 'request body must be a JSON object') unless metadata.is_a?(Hash)
 
       auth_method = metadata.fetch(:token_endpoint_auth_method, DEFAULT_TOKEN_ENDPOINT_AUTH_METHOD).to_s
@@ -89,6 +89,7 @@ module Himari
         registration_ip: registration_ip,
         registration_remote_addr: registration_remote_addr,
         registration_x_forwarded_for: registration_x_forwarded_for,
+        ignore_localhost_redirect_uri_port: ignore_localhost_redirect_uri_port,
       )
     end
 
@@ -134,7 +135,7 @@ module Himari
       new(**attrs)
     end
 
-    def initialize(id:, redirect_uris:, token_endpoint_auth_method:, grant_types:, response_types:, client_id_issued_at:, expiry:, secret: nil, secret_hash: nil, client_name: nil, client_uri: nil, scope: nil, preferred_key_group: nil, registration_ip: nil, registration_remote_addr: nil, registration_x_forwarded_for: nil)
+    def initialize(id:, redirect_uris:, token_endpoint_auth_method:, grant_types:, response_types:, client_id_issued_at:, expiry:, secret: nil, secret_hash: nil, client_name: nil, client_uri: nil, scope: nil, preferred_key_group: nil, registration_ip: nil, registration_remote_addr: nil, registration_x_forwarded_for: nil, ignore_localhost_redirect_uri_port: true)
       @id = id
       @redirect_uris = redirect_uris
       @token_endpoint_auth_method = token_endpoint_auth_method
@@ -151,11 +152,13 @@ module Himari
       @registration_ip = registration_ip
       @registration_remote_addr = registration_remote_addr
       @registration_x_forwarded_for = registration_x_forwarded_for
+      @ignore_localhost_redirect_uri_port = ignore_localhost_redirect_uri_port
     end
 
     attr_reader :id, :redirect_uris, :token_endpoint_auth_method, :grant_types, :response_types,
       :client_id_issued_at, :expiry, :secret, :secret_hash, :client_name, :client_uri, :scope,
-      :preferred_key_group, :registration_ip, :registration_remote_addr, :registration_x_forwarded_for
+      :preferred_key_group, :registration_ip, :registration_remote_addr, :registration_x_forwarded_for,
+      :ignore_localhost_redirect_uri_port
 
     def confidential?
       token_endpoint_auth_method != 'none'
@@ -181,6 +184,7 @@ module Himari
         preferred_key_group: preferred_key_group,
         require_pkce: require_pkce,
         confidential: confidential?,
+        ignore_localhost_redirect_uri_port: ignore_localhost_redirect_uri_port,
       )
     end
 
@@ -218,6 +222,7 @@ module Himari
         registration_ip: registration_ip,
         registration_remote_addr: registration_remote_addr,
         registration_x_forwarded_for: registration_x_forwarded_for,
+        ignore_localhost_redirect_uri_port: ignore_localhost_redirect_uri_port,
       }
     end
 
