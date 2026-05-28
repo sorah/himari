@@ -5,10 +5,12 @@ module Himari
     class OidcProviderMetadataEndpoint
       # @param signing_key_provider [Himari::ProviderChain<Himari::SigningKey>]
       # @param registration_endpoint [String, nil] advertised when Dynamic Client Registration is enabled
-      def initialize(signing_key_provider:, issuer:, registration_endpoint: nil)
+      # @param client_id_metadata_document_supported [Boolean] advertised when OAuth Client ID Metadata Document support is enabled
+      def initialize(signing_key_provider:, issuer:, registration_endpoint: nil, client_id_metadata_document_supported: false)
         @signing_key_provider = signing_key_provider
         @issuer = issuer
         @registration_endpoint = registration_endpoint
+        @client_id_metadata_document_supported = client_id_metadata_document_supported
       end
 
       def app
@@ -16,16 +18,17 @@ module Himari
       end
 
       def call(env)
-        Handler.new(signing_key_provider: @signing_key_provider, issuer: @issuer, registration_endpoint: @registration_endpoint, env: env).response
+        Handler.new(signing_key_provider: @signing_key_provider, issuer: @issuer, registration_endpoint: @registration_endpoint, client_id_metadata_document_supported: @client_id_metadata_document_supported, env: env).response
       end
 
       class Handler
         class InvalidToken < StandardError; end
 
-        def initialize(signing_key_provider:, issuer:, env:, registration_endpoint: nil)
+        def initialize(signing_key_provider:, issuer:, env:, registration_endpoint: nil, client_id_metadata_document_supported: false)
           @signing_key_provider = signing_key_provider
           @issuer = issuer
           @registration_endpoint = registration_endpoint
+          @client_id_metadata_document_supported = client_id_metadata_document_supported
           @env = env
         end
 
@@ -38,6 +41,7 @@ module Himari
             userinfo_endpoint: "#{@issuer}/public/oidc/userinfo",
             jwks_uri: "#{@issuer}/public/jwks",
             registration_endpoint: @registration_endpoint,
+            client_id_metadata_document_supported: @client_id_metadata_document_supported ? true : nil,
             scopes_supported: %w(openid),
             response_types_supported: ['code'], # violation: dynamic OpenID Provider MUST support code, id_token, token+id_token
             grant_types_supported: %w(authorization_code refresh_token),

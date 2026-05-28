@@ -18,6 +18,7 @@ require 'himari/middlewares/client'
 require 'himari/middlewares/config'
 require 'himari/middlewares/signing_key'
 require 'himari/middlewares/dynamic_clients'
+require 'himari/middlewares/metadata_clients'
 
 require 'himari/services/downstream_authorization'
 require 'himari/services/upstream_authentication'
@@ -79,6 +80,10 @@ module Himari
 
       def dynamic_clients_enabled?
         request.env.key?(Himari::Middlewares::DynamicClients::RACK_KEY)
+      end
+
+      def metadata_clients_enabled?
+        request.env.key?(Himari::Middlewares::MetadataClients::RACK_KEY)
       end
 
       def known_providers
@@ -260,6 +265,7 @@ module Himari
         signing_key_provider: signing_key_provider,
         issuer: config.issuer,
         registration_endpoint: dynamic_clients_enabled? ? "#{config.issuer}/public/oidc/register" : nil,
+        client_id_metadata_document_supported: metadata_clients_enabled?,
       ).call(env)
     end
     # OpenID Connect Discovery 1.0

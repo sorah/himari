@@ -83,6 +83,9 @@ use(
 # clients are stored in the configured storage and resolve through the same client lookup.
 use(Himari::Middlewares::DynamicClients)
 
+# Enable OAuth Client ID Metadata Document support (draft-ietf-oauth-client-id-metadata-document)
+use(Himari::Middlewares::MetadataClients)
+
 use(Himari::Middlewares::ClaimsRule, name: 'developer-initialize') do |context, decision|
   next decision.skip! unless context.initial?
   next decision.skip!("provider not in scope") unless context.provider == 'developer'

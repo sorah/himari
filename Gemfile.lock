@@ -12,6 +12,7 @@ PATH
   specs:
     himari (0.5.0)
       addressable
+      httpx
       omniauth (>= 2.0)
       openid_connect
       rack-oauth2
