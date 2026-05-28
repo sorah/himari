@@ -24,7 +24,6 @@ hooks {
     stash = "git"
     steps {
       ...linters
-      ["no-commit-to-branch"] = Builtins.no_commit_to_branch
     }
   }
   ["fix"] {

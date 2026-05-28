@@ -9,6 +9,8 @@ module Himari
     client_id
     claims
     openid
+    offline_access
+    session_handle
     redirect_uri
     nonce
     code_challenge
@@ -83,6 +85,8 @@ module Himari
         claims: claims,
         nonce: nonce,
         openid: openid,
+        offline_access: offline_access,
+        session_handle: session_handle,
         created_at: created_at.to_i,
         lifetime: lifetime.as_log,
         expiry: expiry.to_i,
@@ -98,6 +102,8 @@ module Himari
         client_id: client_id,
         claims: claims,
         openid: openid,
+        offline_access: offline_access,
+        session_handle: session_handle,
         redirect_uri: redirect_uri,
         nonce: nonce,
         code_challenge: code_challenge,

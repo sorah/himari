@@ -7,12 +7,14 @@ RSpec.describe Himari::TokenString do
   class TestToken
     include Himari::TokenString
 
-    def initialize(attr: nil, handle: nil, secret: nil, secret_hash: nil, expiry: nil)
+    def initialize(attr: nil, handle: nil, secret: nil, secret_hash: nil, secret_hash_prev: nil, expiry: nil)
       @attr = attr
       @handle = handle
       @secret = secret
       @secret_hash = secret_hash
+      @secret_hash_prev = secret_hash_prev
       @expiry = expiry
+      @verification = nil
     end
 
     attr_reader :attr, :expiry
@@ -110,6 +112,41 @@ RSpec.describe Himari::TokenString do
 
       specify { expect(subject.verify_secret!('himitsu')).to eq(true) }
       specify { expect { subject.verify_secret!('incorrect') }.to raise_error(Himari::TokenString::SecretIncorrect) }
+    end
+
+    context 'with a previous secret hash' do
+      subject do
+        TestToken.new(
+          attr: 4,
+          secret_hash: Himari::TokenString.hash_secret('current'),
+          secret_hash_prev: Himari::TokenString.hash_secret('previous'),
+          expiry: Time.now.to_i + 86400,
+        )
+      end
+
+      specify "matches the current secret" do
+        expect(subject.verify_secret!('current')).to eq(true)
+        expect(subject.verification.via).to eq(:current)
+        expect(subject.verification.secret_hash).to eq(subject.secret_hash)
+      end
+
+      specify "matches the previous secret" do
+        expect(subject.verify_secret!('previous')).to eq(true)
+        expect(subject.verification.via).to eq(:previous)
+        expect(subject.verification.secret_hash).to eq(subject.secret_hash_prev)
+      end
+
+      specify "rejects a secret matching neither" do
+        expect { subject.verify_secret!('neither') }.to raise_error(Himari::TokenString::SecretIncorrect)
+      end
+    end
+
+    context 'with a malformed stored hash' do
+      subject { TestToken.new(attr: 5, secret_hash: '!!! not base64 !!!', expiry: Time.now.to_i + 86400) }
+
+      specify "raises SecretIncorrect rather than ArgumentError" do
+        expect { subject.verify_secret!('whatever') }.to raise_error(Himari::TokenString::SecretIncorrect)
+      end
     end
   end
 

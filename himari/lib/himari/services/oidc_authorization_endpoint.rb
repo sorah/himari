@@ -57,6 +57,7 @@ module Himari
             @authz.nonce = req.nonce
 
             @authz.openid = req.scope.include?('openid')
+            @authz.offline_access = req.scope.include?('offline_access')
             if req.code_challenge && req.code_challenge_method
               @authz.code_challenge = req.code_challenge
               @authz.code_challenge_method = req.code_challenge_method || 'plain'

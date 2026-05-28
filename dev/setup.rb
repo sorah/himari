@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'securerandom'
 require 'openssl'
 require 'fileutils'
 
@@ -9,3 +10,4 @@ FileUtils.mkdir_p './tmp/storage'
 File.umask(0o077)
 File.write "tmp/rsa.pem", OpenSSL::PKey::RSA.generate(2048).to_pem
 File.write "tmp/ec.pem", OpenSSL::PKey::EC.generate('prime256v1').to_pem
+File.write "tmp/session_secret", SecureRandom.hex(32)

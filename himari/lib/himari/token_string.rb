@@ -13,6 +13,10 @@ module Himari
     class TokenExpired < Error; end
     class InvalidFormat < Error; end
 
+    # Outcome of a successful verify_secret!: which stored secret slot the presented secret
+    # matched (:current or :previous) and the hash it matched against. nil until verified.
+    Verification = Data.define(:via, :secret_hash)
+
     module ClassMethods
       def magic_header
         raise NotImplementedError
@@ -40,6 +44,10 @@ module Himari
       k.extend(ClassMethods)
     end
 
+    def self.hash_secret(secret)
+      Base64.urlsafe_encode64(Digest::SHA384.digest(secret), padding: false)
+    end
+
     def handle
       @handle
     end
@@ -55,7 +63,14 @@ module Himari
     end
 
     def secret_hash
-      @secret_hash ||= Base64.urlsafe_encode64(Digest::SHA384.digest(secret), padding: false)
+      @secret_hash ||= TokenString.hash_secret(secret)
+    end
+
+    # Optional second valid secret hash. Tokens that rotate in place (RefreshToken) keep the
+    # previously-issued secret valid for one more turn so a client whose rotation response was
+    # lost can retry. nil for single-secret tokens (AccessToken, SessionData).
+    def secret_hash_prev
+      @secret_hash_prev
     end
 
     def verify!(secret:, now: Time.now)
@@ -64,12 +79,28 @@ module Himari
     end
 
     def verify_secret!(given_secret)
-      dgst = Base64.urlsafe_decode64(secret_hash) # TODO: rescue errors
       given_dgst = Digest::SHA384.digest(given_secret)
-      raise SecretIncorrect unless Rack::Utils.secure_compare(dgst, given_dgst)
+      @verification =
+        if secret_hash_match(secret_hash, given_dgst)
+          Verification.new(via: :current, secret_hash: secret_hash)
+        elsif secret_hash_prev && secret_hash_match(secret_hash_prev, given_dgst)
+          Verification.new(via: :previous, secret_hash: secret_hash_prev)
+        end
+      raise SecretIncorrect unless @verification
 
       @secret = given_secret
       true
+    end
+
+    # The Verification from the last successful verify_secret!, or nil. Used for logging
+    # (#via) and to let a rotating token keep the just-presented secret valid (#secret_hash).
+    attr_reader :verification
+
+    private def secret_hash_match(stored_hash, given_dgst)
+      stored_dgst = Base64.urlsafe_decode64(stored_hash)
+      Rack::Utils.secure_compare(stored_dgst, given_dgst)
+    rescue ArgumentError
+      raise SecretIncorrect
     end
 
     def verify_expiry!(now = Time.now)

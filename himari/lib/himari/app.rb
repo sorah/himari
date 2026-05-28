@@ -34,6 +34,7 @@ module Himari
     # remote_token: disabled in favor of authenticity_token (more stricter)
     # json_csrf: can be prevented using x-content-type-options:nosniff
     set :protection, use: %i(authenticity_token), except: %i(remote_token json_csrf)
+    set :host_authorization, {}
 
     set :logging, nil
 
@@ -161,6 +162,7 @@ module Himari
           client_id: decision.client.id,
           claims: decision.claims,
           lifetime: decision.lifetime,
+          session_handle: current_user.handle,
         )
 
         Himari::Services::OidcAuthorizationEndpoint.new(

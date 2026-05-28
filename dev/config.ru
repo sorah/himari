@@ -15,7 +15,7 @@ use(
   path: '/',
   expire_after: 3600,
   # secure: true,
-  secret: SecureRandom.hex(32),
+  secret: File.read(File.join(__dir__, 'tmp', 'session_secret')),
 )
 
 use OmniAuth::Builder do
@@ -24,7 +24,7 @@ end
 
 use(
   Himari::Middlewares::Config,
-  issuer: 'http://localhost:3000',
+  issuer: 'http://himari.localhost:1355',
   providers: [
     {name: :developer, button: 'Log in with Dev'},
   ],
@@ -75,11 +75,12 @@ use(
   name: 'client1', # friendly name (this can be referenced from policies)
   id: 'myclient1',
   secret: 'himitsudayo1',
-  redirect_uris: %w(http://localhost:3001/auth/himari/callback),
+  redirect_uris: %w(http://himari-rp.localhost:1355/auth/himari/callback),
   preferred_key_group: nil,
 )
 
 use(Himari::Middlewares::ClaimsRule, name: 'developer-initialize') do |context, decision|
+  next decision.skip! unless context.initial?
   next decision.skip!("provider not in scope") unless context.provider == 'developer'
 
   decision.initialize_claims!(
@@ -87,9 +88,32 @@ use(Himari::Middlewares::ClaimsRule, name: 'developer-initialize') do |context, 
     name: context.auth[:info][:login],
     preferred_username: context.auth[:info][:login],
   )
+  decision.user_data[:provider] = 'developer'
   decision.user_data[:auth_time] = Time.now.to_i
+  decision.refresh_info = {
+    provider: 'developer',
+    sub: decision.claims[:sub],
+    login: context.auth[:info][:login],
+    auth_time: Time.now.to_i,
+  }
   decision.continue!
 end
+
+use(Himari::Middlewares::ClaimsRule, name: 'developer-revalidate') do |context, decision|
+  next decision.skip! unless context.refresh?
+  next decision.skip!("provider not in scope") unless context.refresh_info && context.refresh_info[:provider] == 'developer'
+
+  decision.initialize_claims!(
+    sub: context.refresh_info[:sub],
+    name: context.refresh_info[:login],
+    preferred_username: context.refresh_info[:login],
+  )
+  decision.user_data[:provider] = 'developer'
+  decision.user_data[:auth_time] = context.refresh_info[:auth_time] || Time.now.to_i
+  decision.refresh_info = context.refresh_info
+  decision.continue!
+end
+
 use(Himari::Middlewares::ClaimsRule, name: 'developer-custom') do |context, decision|
   next decision.skip!("provider not in scope") unless context.provider == 'developer'
 
@@ -121,6 +145,11 @@ use(Himari::Middlewares::AuthorizationRule, name: 'default') do |_context, decis
   decision.claims[:something2] = 'custom2'
   decision.allowed_claims.push(:something1)
   decision.allowed_claims.push(:something2)
+  decision.lifetime = Himari::LifetimeValue.new(
+    access_token: 3600,
+    id_token: 3600,
+    refresh_token: 86400,
+  )
   decision.allow!
 end
 
