@@ -79,6 +79,10 @@ use(
   preferred_key_group: nil,
 )
 
+# Enable RFC 7591 Dynamic Client Registration (POST /public/oidc/register). Registered
+# clients are stored in the configured storage and resolve through the same client lookup.
+use(Himari::Middlewares::DynamicClients)
+
 use(Himari::Middlewares::ClaimsRule, name: 'developer-initialize') do |context, decision|
   next decision.skip! unless context.initial?
   next decision.skip!("provider not in scope") unless context.provider == 'developer'

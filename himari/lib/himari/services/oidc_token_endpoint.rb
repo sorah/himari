@@ -44,7 +44,9 @@ module Himari
             @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_client, no client registration', req: env['himari.request_as_log'], client_id: req.client_id))
             next req.invalid_client!
           end
-          unless client.match_secret?(req.client_secret)
+          # Public clients (token_endpoint_auth_method=none) present no secret; they are bound
+          # to the authorization code by PKCE and the client_id check in handle_authorization_code.
+          if client.confidential? && !client.match_secret?(req.client_secret)
             @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_client, client secret mismatch', req: env['himari.request_as_log'], client: client.as_log))
             next req.invalid_client!
           end
@@ -64,6 +66,10 @@ module Himari
         authz = @storage.find_authorization(req.code)
         unless authz
           @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, no grant code found', req: env['himari.request_as_log'], client: client.as_log))
+          return req.invalid_grant!
+        end
+        unless authz.client_id == client.id
+          @logger&.warn(Himari::LogLine.new('OidcTokenEndpoint: invalid_grant, grant client_id mismatch', req: env['himari.request_as_log'], client: client.as_log, grant: authz.as_log))
           return req.invalid_grant!
         end
         unless authz.valid_redirect_uri?(req.redirect_uri)

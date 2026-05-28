@@ -4,7 +4,7 @@ require 'digest/sha2'
 
 module Himari
   class ClientRegistration
-    def initialize(name:, id:, secret: nil, secret_hash: nil, redirect_uris:, preferred_key_group: nil, require_pkce: false)
+    def initialize(id:, redirect_uris:, name: nil, secret: nil, secret_hash: nil, preferred_key_group: nil, require_pkce: false, confidential: true)
       @name = name
       @id = id
       @secret = secret
@@ -12,18 +12,25 @@ module Himari
       @redirect_uris = redirect_uris
       @preferred_key_group = preferred_key_group
       @require_pkce = require_pkce
+      @confidential = confidential
 
       raise ArgumentError, "name starts with '_' is reserved" if @name&.start_with?('_')
-      raise ArgumentError, "either secret or secret_hash must be present" if !@secret && !@secret_hash
+      raise ArgumentError, "either secret or secret_hash must be present" if confidential && !@secret && !@secret_hash
     end
 
     attr_reader :name, :id, :redirect_uris, :preferred_key_group, :require_pkce
+
+    def confidential?
+      @confidential
+    end
 
     def secret_hash
       @secret_hash ||= Digest::SHA384.hexdigest(secret)
     end
 
     def match_secret?(given_secret)
+      return false unless confidential? && given_secret
+
       if @secret
         Rack::Utils.secure_compare(@secret, given_secret)
       else
