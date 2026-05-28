@@ -12,3 +12,8 @@ tmp/
 
 # rspec failure tracking
 .rspec_status
+
+/.claude/skills/playwright-cli
+.playwright-cli/
+.playwright-mcp/
+.playwright/

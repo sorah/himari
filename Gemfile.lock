@@ -93,6 +93,9 @@ GEM
     faraday-net_http (3.4.2)
       net-http (~> 0.5)
     hashie (5.0.0)
+    http-2 (1.1.3)
+    httpx (1.7.8)
+      http-2 (>= 1.1.3)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     jmespath (1.6.2)
@@ -274,6 +277,7 @@ PLATFORMS
 DEPENDENCIES
   himari!
   himari-aws!
+  httpx
   nokogiri
   omniauth-himari!
   puma

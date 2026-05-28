@@ -20,6 +20,8 @@ module OmniAuth
       option :client_options, {}
       option :pkce, true
 
+      option :scope, 'openid'
+
       option :verify_options, {}
       option :verify_at_hash, true
 
@@ -125,7 +127,8 @@ module OmniAuth
 
       def authorize_params
         super.tap do |params|
-          params[:scope] = 'openid'
+          # super reads options.scope; default to 'openid' if the caller cleared it.
+          params[:scope] ||= options.scope || 'openid'
           params[:prompt] = request.GET['prompt'] if request.GET['prompt']
         end
       end

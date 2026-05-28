@@ -1,0 +1,2 @@
+as: portless himari bash -c 'exec watchexec -o restart -w ../himari -w ../himari-aws -w config.ru bundle exec puma --bind tcp://$HOST:$PORT  config.ru'
+rp: portless himari-rp bash -c 'exec watchexec -o restart -w ../omniauth-himari -w config.rp.ru bundle exec puma --bind tcp://$HOST:$PORT  config.rp.ru'

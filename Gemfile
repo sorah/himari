@@ -17,6 +17,7 @@ gem 'rake'
 group :development do
   gem 'rubocop'
   gem 'rubocop-shopify'
+  gem 'httpx'
 end
 
 group :test do
