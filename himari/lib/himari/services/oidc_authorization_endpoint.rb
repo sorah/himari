@@ -46,7 +46,7 @@ module Himari
             next req.bad_request!(:invalid_request, '"redirect_uri" mismatch') unless @client.redirect_uri_covers?(given_redirect_uri)
 
             given_redirect_uri
-          elsif @client.redirect_uris.size == 1
+          elsif @client.redirect_uris.size == 1 && @client.redirect_uris.first.is_a?(String)
             @client.redirect_uris.first
           else
             next req.bad_request!(:invalid_request, '"redirect_uri" missing')

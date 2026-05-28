@@ -47,12 +47,13 @@ module Himari
 
     # True when one of the registered redirect_uris covers the given (request) redirect_uri.
     # draft-ietf-oauth-v2-1-15 §4.1.3 / RFC 3986 §6.2.1: simple (exact) string comparison, with the
-    # loopback-port exception of RFC 8252 §7.3 / draft-v2-1 §8.4.2 applied when enabled.
+    # loopback-port exception of RFC 8252 §7.3 / draft-v2-1 §8.4.2 applied when enabled. A registered
+    # entry may also be a Regexp (operator-supplied via static config), matched against the request URI.
     def redirect_uri_covers?(given)
       given = given.to_s
       return false if given.empty?
 
-      redirect_uris.any? { |registered| redirect_uri_match?(registered.to_s, given) }
+      redirect_uris.any? { |registered| redirect_uri_match?(registered, given) }
     end
 
     def as_log
@@ -72,6 +73,9 @@ module Himari
     end
 
     private def redirect_uri_match?(registered, given)
+      return registered.match?(given) if registered.is_a?(Regexp)
+
+      registered = registered.to_s
       return true if registered == given
       return false unless ignore_localhost_redirect_uri_port
 

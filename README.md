@@ -66,6 +66,9 @@ use(Himari::Middlewares::Client,
   secret_hash: '...', # sha384 hexdigest of secret
   # secret: '...' # or in cleartext
   redirect_uris: %w(https://app.example.net/oauth2/idpresponse),
+  # Entries are matched by simple string comparison. A Regexp entry is matched
+  # with #match? against the request redirect_uri instead, e.g.
+  #   redirect_uris: [%r{\Ahttps://app\.example\.net/oauth2/[^/]+\z}]
   # ignore_localhost_redirect_uri_port: true, # (default) allow any port for loopback
   #   redirect_uris (http/https on localhost, 127.0.0.1, [::1]) per RFC 8252 §7.3, so native
   #   apps using an ephemeral port match. Set false to require exact port matching.

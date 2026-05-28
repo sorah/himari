@@ -113,6 +113,26 @@ RSpec.describe Himari::ClientRegistration do
       end
     end
 
+    context "with a Regexp registered redirect_uri" do
+      let(:redirect_uris) { [%r{\Ahttps://rp\.invalid/cb/[0-9]+\z}] }
+
+      it "matches via the pattern" do
+        expect(client.redirect_uri_covers?('https://rp.invalid/cb/123')).to eq(true)
+        expect(client.redirect_uri_covers?('https://rp.invalid/cb/abc')).to eq(false)
+        expect(client.redirect_uri_covers?('https://attacker.invalid/cb/123')).to eq(false)
+      end
+    end
+
+    context "with a mix of String and Regexp entries" do
+      let(:redirect_uris) { ['https://rp.invalid/cb', %r{\Ahttps://rp\.invalid/alt/}] }
+
+      it "matches against either" do
+        expect(client.redirect_uri_covers?('https://rp.invalid/cb')).to eq(true)
+        expect(client.redirect_uri_covers?('https://rp.invalid/alt/x')).to eq(true)
+        expect(client.redirect_uri_covers?('https://rp.invalid/other')).to eq(false)
+      end
+    end
+
     context "with ignore_localhost_redirect_uri_port disabled" do
       let(:client) { described_class.new(id: 'a', redirect_uris:, confidential: false, ignore_localhost_redirect_uri_port: false) }
       let(:redirect_uris) { ['http://127.0.0.1:3000/cb'] }
