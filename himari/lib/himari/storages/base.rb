@@ -4,6 +4,7 @@ require 'himari/authorization_code'
 require 'himari/access_token'
 require 'himari/refresh_token'
 require 'himari/session_data'
+require 'himari/dynamic_client_registration'
 
 module Himari
   module Storages
@@ -62,6 +63,27 @@ module Himari
 
       def delete_refresh_token_by_handle(handle)
         delete('refresh', handle)
+      end
+
+      def find_dynamic_client(id)
+        # ids are server-generated url-safe base64; reject anything else before it reaches a
+        # storage key (defense-in-depth against path traversal on filesystem-backed storage).
+        return unless id.is_a?(String) && id.match?(/\A[A-Za-z0-9_-]+\z/)
+
+        content = read('dynamic_client', id)
+        content && DynamicClientRegistration.from_json(content)
+      end
+
+      def put_dynamic_client(client, overwrite: false)
+        write('dynamic_client', client.id, client.as_json, overwrite: overwrite)
+      end
+
+      def delete_dynamic_client(client)
+        delete_dynamic_client_by_id(client.id)
+      end
+
+      def delete_dynamic_client_by_id(id)
+        delete('dynamic_client', id)
       end
 
       def find_session(handle)

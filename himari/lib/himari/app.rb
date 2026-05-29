@@ -17,10 +17,13 @@ require 'himari/session_data'
 require 'himari/middlewares/client'
 require 'himari/middlewares/config'
 require 'himari/middlewares/signing_key'
+require 'himari/middlewares/dynamic_clients'
+require 'himari/middlewares/metadata_clients'
 
 require 'himari/services/downstream_authorization'
 require 'himari/services/upstream_authentication'
 
+require 'himari/services/client_registration_endpoint'
 require 'himari/services/jwks_endpoint'
 require 'himari/services/oidc_authorization_endpoint'
 require 'himari/services/oidc_provider_metadata_endpoint'
@@ -73,6 +76,14 @@ module Himari
 
       def client_provider
         Himari::ProviderChain.new(request.env[Himari::Middlewares::Client::RACK_KEY] || [])
+      end
+
+      def dynamic_clients_enabled?
+        request.env.key?(Himari::Middlewares::DynamicClients::RACK_KEY)
+      end
+
+      def metadata_clients_enabled?
+        request.env.key?(Himari::Middlewares::MetadataClients::RACK_KEY)
       end
 
       def known_providers
@@ -227,12 +238,41 @@ module Himari
     get '/jwks', &jwks_ep
     get '/public/jwks', &jwks_ep
 
-    get '/.well-known/openid-configuration' do
+    # RFC 7591 Dynamic Client Registration. Enabled by presence of the DynamicClients
+    # middleware; the route always exists but 404s when the feature is off.
+    register_ep = proc do
+      next halt 404, 'not found' unless dynamic_clients_enabled?
+
+      Himari::Services::ClientRegistrationEndpoint.new(
+        storage: config.storage,
+        registration_lifetime: request.env[Himari::Middlewares::DynamicClients::RACK_KEY].registration_lifetime,
+        ignore_localhost_redirect_uri_port: request.env[Himari::Middlewares::DynamicClients::RACK_KEY].ignore_localhost_redirect_uri_port,
+        logger: logger,
+      ).call(env)
+    end
+    post '/oidc/register', &register_ep
+    post '/public/oidc/register', &register_ep
+    # Wire the non-POST verbs too so they reach the endpoint, which answers 405 (RFC 7591 only
+    # defines POST). Without these Sinatra would 404 a GET, masking the method error.
+    %w(/oidc/register /public/oidc/register).each do |path|
+      get(path, &register_ep)
+      put(path, &register_ep)
+      patch(path, &register_ep)
+      delete(path, &register_ep)
+    end
+
+    metadata_ep = proc do
       Himari::Services::OidcProviderMetadataEndpoint.new(
         signing_key_provider: signing_key_provider,
         issuer: config.issuer,
+        registration_endpoint: dynamic_clients_enabled? ? "#{config.issuer}/public/oidc/register" : nil,
+        client_id_metadata_document_supported: metadata_clients_enabled?,
       ).call(env)
     end
+    # OpenID Connect Discovery 1.0
+    get '/.well-known/openid-configuration', &metadata_ep
+    # RFC 8414 OAuth 2.0 Authorization Server Metadata
+    get '/.well-known/oauth-authorization-server', &metadata_ep
 
     omniauth_callback = proc do
       authhash = request.env['omniauth.auth']

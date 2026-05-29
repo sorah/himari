@@ -3,9 +3,32 @@
 require 'spec_helper'
 require 'himari/storages/memory'
 require 'himari/refresh_token'
+require 'himari/dynamic_client_registration'
 
 RSpec.describe Himari::Storages::Memory do
   subject(:storage) { described_class.new }
+
+  describe "dynamic clients" do
+    let(:client) { Himari::DynamicClientRegistration.register(metadata: {redirect_uris: %w(https://rp.test.invalid/cb), token_endpoint_auth_method: 'client_secret_basic'}) }
+
+    it "round-trips put/find/delete by id" do
+      storage.put_dynamic_client(client)
+      found = storage.find_dynamic_client(client.id)
+      expect(found.id).to eq(client.id)
+      expect(found.to_client_registration.match_secret?(client.secret)).to eq(true)
+
+      storage.delete_dynamic_client(client)
+      expect(storage.find_dynamic_client(client.id)).to be_nil
+    end
+
+    it "returns nil for an unknown id" do
+      expect(storage.find_dynamic_client('nope')).to be_nil
+    end
+
+    it "returns nil (without reading storage) for an id with disallowed characters" do
+      expect(storage.find_dynamic_client('../authz/code')).to be_nil
+    end
+  end
 
   let(:token) do
     Himari::RefreshToken.make(client_id: 'cli', claims: {sub: 'c'}, session_handle: 'sess', openid: false, lifetime: 7200)

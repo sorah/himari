@@ -13,7 +13,9 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
   end
 
   let(:signing_key_provider) { double('chain', collect: keys) }
-  let(:app) { described_class.new(signing_key_provider: signing_key_provider, issuer: 'https://test.invalid') }
+  let(:registration_endpoint) { nil }
+  let(:client_id_metadata_document_supported) { false }
+  let(:app) { described_class.new(signing_key_provider: signing_key_provider, issuer: 'https://test.invalid', registration_endpoint: registration_endpoint, client_id_metadata_document_supported: client_id_metadata_document_supported) }
 
   context "with non-GET request" do
     it "returns 404" do
@@ -31,6 +33,42 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         body = JSON.parse(last_response.body, symbolize_names: true)
 
         expect(body[:id_token_signing_alg_values_supported]).to eq(%w(RS256))
+      end
+
+      context "without dynamic client registration" do
+        it "omits registration_endpoint" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body).not_to have_key(:registration_endpoint)
+        end
+      end
+
+      context "with dynamic client registration" do
+        let(:registration_endpoint) { 'https://test.invalid/public/oidc/register' }
+
+        it "advertises registration_endpoint" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body[:registration_endpoint]).to eq('https://test.invalid/public/oidc/register')
+        end
+      end
+
+      context "without metadata client registrations" do
+        it "omits client_id_metadata_document_supported" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body).not_to have_key(:client_id_metadata_document_supported)
+        end
+      end
+
+      context "with metadata client registrations" do
+        let(:client_id_metadata_document_supported) { true }
+
+        it "advertises client_id_metadata_document_supported" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body[:client_id_metadata_document_supported]).to eq(true)
+        end
       end
     end
 

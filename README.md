@@ -66,6 +66,12 @@ use(Himari::Middlewares::Client,
   secret_hash: '...', # sha384 hexdigest of secret
   # secret: '...' # or in cleartext
   redirect_uris: %w(https://app.example.net/oauth2/idpresponse),
+  # Entries are matched by simple string comparison. A Regexp entry is matched
+  # with #match? against the request redirect_uri instead, e.g.
+  #   redirect_uris: [%r{\Ahttps://app\.example\.net/oauth2/[^/]+\z}]
+  # ignore_localhost_redirect_uri_port: true, # (default) allow any port for loopback
+  #   redirect_uris (http/https on localhost, 127.0.0.1, [::1]) per RFC 8252 §7.3, so native
+  #   apps using an ephemeral port match. Set false to require exact port matching.
 )
 
 # Generate claims from omniauth authentication result
@@ -134,6 +140,8 @@ run Himari::App
 ## Documentation
 
 - [docs/refresh-tokens.md](./docs/refresh-tokens.md): Enabling the refresh token grant and revalidating sessions on refresh
+- [docs/dynamic-client-registrations.md](./docs/dynamic-client-registrations.md): RFC 7591 Dynamic Client Registration — let clients register themselves at runtime
+- [docs/metadata-client-registrations.md](./docs/metadata-client-registrations.md): Client ID Metadata Document — accept an https URL `client_id` pointing to a hosted metadata document
 
 ## Usage
 

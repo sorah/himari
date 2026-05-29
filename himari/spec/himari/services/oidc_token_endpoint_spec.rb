@@ -28,8 +28,9 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
 
   let(:require_pkce) { false }
 
+  let(:confidential) { true }
   let(:client) do
-    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}, require_pkce: require_pkce).tap do |x|
+    double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}, require_pkce: require_pkce, confidential?: confidential).tap do |x|
       allow(x).to receive(:match_secret?).with('secret').and_return(true)
     end
   end
@@ -145,6 +146,35 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
         expect(last_response.status).to eq(200)
         expect(last_response.content_type).to match(%r{^application/json})
       end
+    end
+  end
+
+  context "with grant issued to a different client" do
+    let(:authz) { Himari::AuthorizationCode.make(client_id: 'otherclient', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, lifetime: lifetime_value) }
+
+    it "returns 400" do
+      post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
+      expect(last_response.status).to eq(400)
+    end
+  end
+
+  context "with a public client (token_endpoint_auth_method=none)" do
+    let(:confidential) { false }
+    let(:require_pkce) { true }
+    let(:code_verifier) { 'kakunin' }
+    let(:code_challenge) { Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier), padding: false) }
+    let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: false, code_challenge: code_challenge, code_challenge_method: 'S256', lifetime: lifetime_value) }
+
+    before { allow(client_provider).to receive(:find).with(id: 'clientid').and_return(client) }
+
+    it "issues tokens with PKCE and no client secret" do
+      post '/oidc/token', {'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb', 'code_verifier' => code_verifier, 'client_id' => 'clientid'}, {}
+      expect(last_response.status).to eq(200)
+    end
+
+    it "rejects when PKCE verifier is missing" do
+      post '/oidc/token', {'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb', 'client_id' => 'clientid'}, {}
+      expect(last_response.status).to eq(400)
     end
   end
 
