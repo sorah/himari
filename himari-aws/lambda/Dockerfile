@@ -1,5 +1,5 @@
 # context must be repository root
-FROM public.ecr.aws/lambda/ruby:3.4 as builder
+FROM public.ecr.aws/lambda/ruby:4.0 as builder
 RUN --mount=type=cache,target=/var/cache/dnf dnf update -y && dnf install -y gcc gcc-c++ make
 
 COPY ./himari/himari.gemspec ${LAMBDA_TASK_ROOT}/app/himari/himari.gemspec
@@ -24,7 +24,7 @@ RUN bundle install
 
 COPY . ${LAMBDA_TASK_ROOT}/app
 
-FROM public.ecr.aws/lambda/ruby:3.4
+FROM public.ecr.aws/lambda/ruby:4.0
 
 COPY --from=builder ${LAMBDA_TASK_ROOT}/vendor ${LAMBDA_TASK_ROOT}/vendor
 COPY . ${LAMBDA_TASK_ROOT}/app
