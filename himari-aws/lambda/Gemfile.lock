@@ -167,6 +167,9 @@ GEM
       omniauth-oauth2 (~> 1)
     omniauth-discord (1.2.0)
       omniauth-oauth2 (~> 1.6)
+    omniauth-entra-id (3.1.1)
+      jwt (>= 2.9.2)
+      omniauth-oauth2 (~> 1.8)
     omniauth-github (2.0.1)
       omniauth (~> 2.0)
       omniauth-oauth2 (~> 1.8)
@@ -181,6 +184,9 @@ GEM
     omniauth-oauth2 (1.8.0)
       oauth2 (>= 1.4, < 3)
       omniauth (~> 2.0)
+    omniauth-okta (2.0.0)
+      omniauth (~> 2.0)
+      omniauth-oauth2 (~> 1.7, >= 1.7.1)
     omniauth-saml (2.2.5)
       omniauth (~> 2.1)
       ruby-saml (~> 1.18)
@@ -268,11 +274,13 @@ DEPENDENCIES
   omniauth-apple
   omniauth-auth0
   omniauth-discord
+  omniauth-entra-id
   omniauth-github
   omniauth-gitlab
   omniauth-google-oauth2
   omniauth-himari!
   omniauth-oauth2
+  omniauth-okta
   omniauth-saml
   rack-cors
   secure_headers
@@ -333,11 +341,13 @@ CHECKSUMS
   omniauth-apple (1.4.0) sha256=f449ce4c206e784536cbaf64b7c36072ac5e7c73103b1a01ba3c1d9454bf6e24
   omniauth-auth0 (3.2.0) sha256=9241a8ce3ead46070f101f8f5170f09d7c2c3841321734d7a4852d954815db9c
   omniauth-discord (1.2.0) sha256=e6e92649a645862ccb29ce3d5f2f876de9e26198722b9d05f9f6d4f3805d5c70
+  omniauth-entra-id (3.1.1) sha256=16622979423891352f916709f0698401e692e60bb41d4dbf5f7a17d98fee27ef
   omniauth-github (2.0.1) sha256=8ff8e70ac6d6db9d52485eef52cfa894938c941496e66b52b5e2773ade3ccad4
   omniauth-gitlab (4.1.0) sha256=543f1fa710488220b382bd683a3f314f5b29c36de85ad746f356f37795959613
   omniauth-google-oauth2 (1.2.2) sha256=74c3f3d0221c048f938846092fb15a1f15237526f50a7c93d9793f9a4ff1be11
   omniauth-himari (0.2.0)
   omniauth-oauth2 (1.8.0) sha256=b2f8e9559cc7e2d4efba57607691d6d2b634b879fc5b5b6ccfefa3da85089e78
+  omniauth-okta (2.0.0) sha256=6425fd3140c3130bc8793a536f8200bfc154faac69fe6661d03959d841639655
   omniauth-saml (2.2.5) sha256=552ad464564d711f0dfd169e0ad801de809cf3ac71c4bc9094f152d5a0d7ab59
   openid_connect (2.4.0) sha256=fa00cb79161b8e8580878065ab31229c79d3802851bf5dc55b69e897d45b9f50
   prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
