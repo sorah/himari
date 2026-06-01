@@ -36,10 +36,13 @@ module "himari_image" {
 
   repository_name  = "himari-lambda"
   source_image_tag = "" # Replace with image tag
+  architecture     = "x86_64" # or arm64; must match the Lambda architecture
 }
 ```
 
-- Uses null_resource with `docker` command to perform pull, retag and push to ECR private locally
+- Uses null_resource with `skopeo` command to copy the image to ECR private locally (requires `skopeo` on the machine running Terraform)
+- `architecture` selects which platform to copy out of the multi-arch source image (defaults to `x86_64`); set it to match the `architecture` you pass to the functions module
+- Requires Terraform >= 1.10 and AWS provider >= 5.83 (ephemeral resource for ECR credentials)
 - Prebuilt image tag is based on git commit SHA: https://github.com/sorah/himari/commits/main
 
 ## functions
