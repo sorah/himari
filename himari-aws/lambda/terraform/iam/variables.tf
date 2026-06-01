@@ -40,5 +40,5 @@ variable "secrets_rotation_function_arn" {
 }
 
 locals {
-  dynamodb_table_arn = coalesce(var.dynamodb_table_arn, var.dynamodb_table_name != null ? "arn:aws:dynamodb:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}" : null)
+  dynamodb_table_arn = coalesce(var.dynamodb_table_arn, var.dynamodb_table_name != null ? "arn:aws:dynamodb:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:table/${var.dynamodb_table_name}" : null)
 }
