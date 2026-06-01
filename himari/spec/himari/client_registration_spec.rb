@@ -35,6 +35,16 @@ RSpec.describe Himari::ClientRegistration do
     end
   end
 
+  describe "#skip_consent" do
+    it "defaults to false" do
+      expect(described_class.new(id: 'a', redirect_uris: [], confidential: false).skip_consent).to eq(false)
+    end
+
+    it "is settable to true" do
+      expect(described_class.new(id: 'a', redirect_uris: [], confidential: false, skip_consent: true).skip_consent).to eq(true)
+    end
+  end
+
   describe "confidential validation" do
     it "requires a secret for confidential clients" do
       expect { described_class.new(id: 'a', redirect_uris: []) }.to raise_error(ArgumentError)

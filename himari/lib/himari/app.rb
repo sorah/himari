@@ -91,7 +91,15 @@ module Himari
           request.path
         else
           Addressable::URI.parse(request.fullpath).tap do |u|
-            u.query_values = u.query_values.reject { |k, _v| k == 'prompt' }
+            # Drop only the prompt values that would re-trigger the login screen once the user
+            # comes back authenticated (otherwise we'd loop); keep the rest (e.g. consent) so they
+            # still apply at the authorize endpoint after login.
+            u.query_values = u.query_values.filter_map do |k, v|
+              next [k, v] unless k == 'prompt'
+
+              remaining = v.to_s.split(/\s+/) - %w(login select_account)
+              [k, remaining.join(' ')] unless remaining.empty?
+            end.to_h
           end.to_s
         end
         query = Addressable::URI.form_encode(back_to: back_to)
@@ -156,7 +164,10 @@ module Himari
       "Himari #{release_code}\n"
     end
 
-    get '/oidc/authorize' do
+    # Served on GET (initial request and consent display) and POST (consent submission). The
+    # consent form posts the original authorization params back here as hidden fields plus a
+    # _consent decision; everything else flows through OidcAuthorizationEndpoint identically.
+    authorize_ep = proc do
       client = client_provider.find(id: params[:client_id])
       unless client
         logger&.warn(Himari::LogLine.new('authorize: no client registration found', req: request_as_log, client_id: params[:client_id]))
@@ -176,10 +187,16 @@ module Himari
           session_handle: current_user.handle,
         )
 
+        consent = case params[:_consent]
+        when 'approve' then :approve
+        when 'deny' then :deny
+        end
+
         Himari::Services::OidcAuthorizationEndpoint.new(
           authz: authz,
           client: client,
           storage: config.storage,
+          consent: consent,
           logger: logger,
         ).call(env)
       else
@@ -189,6 +206,11 @@ module Himari
     rescue Himari::Services::OidcAuthorizationEndpoint::ReauthenticationRequired
       logger&.warn(Himari::LogLine.new('authorize: prompt login to reauthenticate (demanded by oidc request)', req: request_as_log, session: current_user&.as_log, allowed: decision&.authz_result&.allowed, result: decision&.as_log))
       next erb(config.custom_templates[:login] || :login)
+    rescue Himari::Services::OidcAuthorizationEndpoint::ConsentRequired => e
+      logger&.info(Himari::LogLine.new('authorize: prompt consent', req: request_as_log, session: current_user&.as_log, client: e.client.as_log, scopes: e.scopes))
+      @consent_client = e.client
+      @consent_scopes = e.scopes
+      next erb(config.custom_templates[:consent] || :consent)
     rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
       logger&.warn(Himari::LogLine.new('authorize: downstream forbidden', req: request_as_log, session: current_user&.as_log, allowed: e.result.authz_result.allowed, err: e.class.inspect, result: e.as_log))
 
@@ -206,6 +228,8 @@ module Himari
 
       halt(403, "Forbidden#{message_human ? "; #{message_human}" : nil}")
     end
+    get '/oidc/authorize', &authorize_ep
+    post '/oidc/authorize', &authorize_ep
 
     token_ep = proc do
       Himari::Services::OidcTokenEndpoint.new(

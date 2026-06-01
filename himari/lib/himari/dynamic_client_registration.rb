@@ -175,8 +175,9 @@ module Himari
 
     # The client object the OIDC authorization/token endpoints consume. Dynamic records carry
     # no name (so operator rules keyed on name never match them) and pass through the secret
-    # hash only for confidential clients.
-    def to_client_registration
+    # hash only for confidential clients. skip_consent defaults to false and is supplied by the
+    # provider from the DynamicClients middleware option.
+    def to_client_registration(skip_consent: false)
       ClientRegistration.new(
         id: id,
         redirect_uris: redirect_uris,
@@ -185,6 +186,7 @@ module Himari
         require_pkce: require_pkce,
         confidential: confidential?,
         ignore_localhost_redirect_uri_port: ignore_localhost_redirect_uri_port,
+        skip_consent: skip_consent,
       )
     end
 

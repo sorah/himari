@@ -9,16 +9,30 @@ module Himari
     class OidcAuthorizationEndpoint
       class ReauthenticationRequired < StandardError; end
 
+      # Raised when the user must be shown the consent page before a code is granted. Carries the
+      # data the page renders (the requesting client and the requested scopes); app.rb rescues it.
+      class ConsentRequired < StandardError
+        def initialize(client:, scopes:)
+          @client = client
+          @scopes = scopes
+          super('consent required')
+        end
+
+        attr_reader :client, :scopes
+      end
+
       SUPPORTED_RESPONSE_TYPES = ['code'] # TODO: share with oidc metadata
 
       # @param authz [Himari::AuthorizationCode] pending (unpersisted) authz data
       # @param client [Himari::ClientRegistration]
       # @param storage [Himari::Storages::Base]
+      # @param consent [:approve, :deny, nil] the user's consent decision (nil = not yet asked)
       # @param logger [Logger]
-      def initialize(authz:, client:, storage:, logger: nil)
+      def initialize(authz:, client:, storage:, consent: nil, logger: nil)
         @authz = authz
         @client = client
         @storage = storage
+        @consent = consent
         @logger = logger
       end
 
@@ -58,6 +72,23 @@ module Himari
           req.bad_request!(:request_uri_not_supported, "Request Object is not implemented") if req.request_uri || req.request
           req.bad_request!(:invalid_request, 'prompt=none should not contain any other value') if req.prompt.include?('none') && req.prompt.any? { |x| x != 'none' }
           raise ReauthenticationRequired if req.prompt.include?('login') || req.prompt.include?('select_account')
+
+          # Consent gate. Clients granted skip_consent (the default for dynamically/metadata-
+          # registered clients) bypass it; prompt=consent forces the page regardless.
+          if !@client.skip_consent || req.prompt.include?('consent')
+            case @consent
+            when :approve
+              # consent given; fall through and grant
+            when :deny
+              next req.access_denied!
+            else
+              # prompt=none forbids interaction (OIDC §3.1.2.1), so surface the error via redirect
+              # instead of rendering the page.
+              next req.consent_required! if req.prompt.include?('none')
+
+              raise ConsentRequired.new(client: @client, scopes: req.scope)
+            end
+          end
 
           requested_response_types = [*req.response_type]
           unless SUPPORTED_RESPONSE_TYPES.include?(requested_response_types.map(&:to_s).join(' '))

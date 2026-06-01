@@ -13,15 +13,17 @@ module Himari
       include Himari::ItemProvider
 
       # @param storage [Himari::Storages::Base]
-      def initialize(storage:)
+      # @param skip_consent [Boolean] applied to every dynamic client this provider resolves
+      def initialize(storage:, skip_consent: false)
         @storage = storage
+        @skip_consent = skip_consent
       end
 
       def collect(id: nil, **_hint)
         return [] unless id
 
         client = @storage.find_dynamic_client(id)
-        client&.active? ? [client.to_client_registration] : []
+        client&.active? ? [client.to_client_registration(skip_consent: @skip_consent)] : []
       end
     end
   end

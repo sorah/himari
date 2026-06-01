@@ -15,12 +15,14 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
 
   let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}) }
   let(:require_pkce) { false }
+  let(:skip_consent) { true }
+  let(:consent) { nil }
   let(:redirect_uris) { ['https://rp.invalid/cb'] }
-  let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:) }
+  let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, skip_consent:) }
   let(:storage) { Himari::Storages::Memory.new }
   let(:logger) { Rack::NullLogger.new(nil) }
 
-  let(:app) { described_class.new(authz: authz, client: client, storage: storage, logger: logger) }
+  let(:app) { described_class.new(authz: authz, client: client, storage: storage, consent: consent, logger: logger) }
 
   context "with invalid clientid combination" do
     it "returns 400" do
@@ -168,6 +170,73 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
     end
   end
 
+  context "when consent is required (skip_consent=false)" do
+    let(:skip_consent) { false }
+
+    context "with no consent decision yet" do
+      it "raises ConsentRequired carrying the client and scopes" do
+        expect do
+          get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid+profile&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+        end.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ConsentRequired) do |e|
+          expect(e.client).to eq(client)
+          expect(e.scopes).to contain_exactly('openid', 'profile')
+        end
+      end
+    end
+
+    context "when consent is approved" do
+      let(:consent) { :approve }
+
+      it "returns a grant code" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+        expect(last_response.status).to eq(302)
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        expect(query['code']).to be_a(String)
+        expect(storage.find_authorization(query['code'])).to be_a(Himari::AuthorizationCode)
+      end
+    end
+
+    context "when consent is denied" do
+      let(:consent) { :deny }
+
+      it "redirects with error=access_denied" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+        expect(last_response.status).to eq(302)
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        expect(query['error']).to eq('access_denied')
+        expect(query['state']).to eq('x')
+      end
+    end
+
+    context "with prompt=none" do
+      it "redirects with error=consent_required instead of prompting" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=none'
+        expect(last_response.status).to eq(302)
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        expect(query['error']).to eq('consent_required')
+      end
+    end
+  end
+
+  context "when skip_consent=true but prompt=consent forces the page" do
+    it "raises ConsentRequired" do
+      expect do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=consent'
+      end.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ConsentRequired)
+    end
+
+    context "when forced consent is approved" do
+      let(:consent) { :approve }
+
+      it "returns a grant code" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn&prompt=consent'
+        expect(last_response.status).to eq(302)
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        expect(query['code']).to be_a(String)
+      end
+    end
+  end
+
   context "with a mismatched redirect_uri" do
     it "returns invalid_request without redirecting" do
       get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=https%3A%2F%2Fattacker.invalid%2Fcb&nonce=nn'
@@ -187,7 +256,7 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
     end
 
     context "when ignore_localhost_redirect_uri_port is disabled" do
-      let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, ignore_localhost_redirect_uri_port: false) }
+      let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, skip_consent:, ignore_localhost_redirect_uri_port: false) }
 
       it "rejects a differing port" do
         get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid&state=x&redirect_uri=http%3A%2F%2F127.0.0.1%3A54321%2Fcb&nonce=nn'
