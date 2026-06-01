@@ -32,6 +32,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
   let(:client) do
     double('client', id: 'clientid', redirect_uris: ['https://rp.invalid/cb'], preferred_key_group: 'kagi', as_log: {client_as_log: 1}, require_pkce: require_pkce, confidential?: confidential).tap do |x|
       allow(x).to receive(:match_secret?).with('secret').and_return(true)
+      allow(x).to receive(:filter_scopes) { |requested| requested }
     end
   end
   let(:client_provider) do
@@ -213,7 +214,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
 
     context "with offline_access scope and lifetime.refresh_token set" do
       let(:lifetime_value) { Himari::LifetimeValue.new(id_token: 3600, access_token: 3600, refresh_token: 7200) }
-      let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, offline_access: true, session_handle: 'sess1', lifetime: lifetime_value) }
+      let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, offline_access: true, scopes: %w(openid offline_access profile), session_handle: 'sess1', lifetime: lifetime_value) }
 
       it "issues a refresh_token persisted in storage" do
         post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
@@ -227,6 +228,8 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
         expect(stored.verify_secret!(parsed.secret)).to eq(true)
         expect(stored.session_handle).to eq('sess1')
         expect(stored.client_id).to eq('clientid')
+        # the grant's scopes are carried onto the refresh token for later refreshes
+        expect(stored.scopes).to eq(%w(openid offline_access profile))
       end
 
       it "skips refresh_token when session_handle missing" do
@@ -294,6 +297,7 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
         claims: {sub: 'chihiro'},
         session_handle: session.handle,
         openid: false,
+        scopes: %w(profile),
         lifetime: 7200,
       )
     end
@@ -355,6 +359,24 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       expect(stored.verify_secret!(new_parsed.secret)).to eq(true)
       # ...and still against the just-presented (now previous) secret.
       expect(storage.find_refresh_token(refresh.handle).verify_secret!(refresh.secret)).to eq(true)
+    end
+
+    it "exposes the grant's scopes to authz rules and preserves them across rotation" do
+      seen = nil
+      env = {
+        Himari::Middlewares::AuthorizationRule::RACK_KEY => [Himari::ItemProviders::Static.new([
+          Himari::Rule.new(name: 'authz', block: proc { |c, d|
+            seen = c.scopes
+            d.lifetime = Himari::LifetimeValue.new(access_token: 3600, id_token: 3600, refresh_token: 7200)
+            d.allow!
+          }),
+        ])],
+      }
+      # The refresh request carries no scope parameter, so the scopes must come from the grant.
+      post_refresh(refresh.format.to_s, env)
+      expect(last_response.status).to eq(200)
+      expect(seen).to eq(%w(profile))
+      expect(storage.find_refresh_token(refresh.handle).scopes).to eq(%w(profile))
     end
 
     it "tolerates a lost rotation response: the previous secret refreshes once more" do

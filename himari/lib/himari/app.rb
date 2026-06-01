@@ -175,8 +175,11 @@ module Himari
       end
 
       if current_user
-        # do downstream authz and process oidc request
-        decision = Himari::Services::DownstreamAuthorization.from_request(session: current_user, client: client, request: request).perform
+        # do downstream authz and process oidc request. The OIDC request's scope is parsed the
+        # same way rack-oauth2 parses it downstream (OidcAuthorizationEndpoint), so the scopes the
+        # authz rules see match those the grant is filtered to.
+        requested_scopes = request.params['scope'].to_s.split(' ')
+        decision = Himari::Services::DownstreamAuthorization.from_request(session: current_user, client: client, request: request, requested_scopes: requested_scopes).perform
         logger&.info(Himari::LogLine.new('authorize: downstream authorized', req: request_as_log, session: current_user.as_log, allowed: decision.authz_result.allowed, result: decision.as_log))
         raise unless decision.authz_result.allowed # sanity check
 

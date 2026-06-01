@@ -18,7 +18,7 @@ module Himari
         email_verified
       )
 
-      Context = Struct.new(:claims, :user_data, :request, :client, :grant_type, keyword_init: true) do
+      Context = Struct.new(:claims, :user_data, :request, :client, :scopes, :grant_type, keyword_init: true) do
         def initial?; grant_type.nil? || grant_type == :initial; end
         def refresh?; grant_type == :refresh_token; end
       end

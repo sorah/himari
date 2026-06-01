@@ -8,6 +8,7 @@ module Himari
     code
     client_id
     claims
+    scopes
     openid
     offline_access
     session_handle
@@ -84,6 +85,7 @@ module Himari
         client_id: client_id,
         claims: claims,
         nonce: nonce,
+        scopes: scopes,
         openid: openid,
         offline_access: offline_access,
         session_handle: session_handle,
@@ -101,6 +103,7 @@ module Himari
         code: code,
         client_id: client_id,
         claims: claims,
+        scopes: scopes,
         openid: openid,
         offline_access: offline_access,
         session_handle: session_handle,

@@ -79,8 +79,20 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(authz.redirect_uri).to eq('https://rp.invalid/cb')
       expect(authz.nonce).to eq('nn')
       expect(authz.openid).to eq(true)
+      expect(authz.scopes).to eq(%w(openid))
       expect(authz.code_challenge).to be_nil
       expect(authz.code_challenge_method).to be_nil
+    end
+
+    context "when the client declares an extra scope" do
+      let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, skip_consent:, scopes: %w(profile)) }
+
+      it "persists only the recognised scopes onto the AuthorizationCode" do
+        get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid+profile+email&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+        query = Addressable::URI.parse(last_response.headers['location']).query_values
+        stored = storage.find_authorization(query['code'])
+        expect(stored.scopes).to eq(%w(openid profile))
+      end
     end
 
     context "when pkce enforced" do

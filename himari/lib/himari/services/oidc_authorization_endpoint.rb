@@ -102,6 +102,7 @@ module Himari
             @authz.redirect_uri = res.redirect_uri
             @authz.nonce = req.nonce
 
+            @authz.scopes = scopes
             @authz.openid = scopes.include?('openid')
             @authz.offline_access = scopes.include?('offline_access')
             if req.code_challenge && req.code_challenge_method
