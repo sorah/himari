@@ -27,6 +27,9 @@ resource "null_resource" "copy-image" {
       set -euo pipefail
       authfile="$(mktemp)"
       trap 'rm -f "$authfile"' EXIT
+      # skopeo login reads the authfile before merging the new credential into it,
+      # so seed it with an empty JSON object; mktemp's 0-byte file is invalid JSON.
+      printf '{}' > "$authfile"
       printf '%s' "$DEST_PASSWORD" | skopeo login --username AWS --password-stdin --authfile "$authfile" "$${REPOSITORY_URL%%/*}"
       skopeo copy --authfile "$authfile" --override-os "$OVERRIDE_OS" --override-arch "$OVERRIDE_ARCH" "docker://public.ecr.aws/sorah/himari-lambda:$SOURCE_IMAGE_TAG" "docker://$REPOSITORY_URL:$SOURCE_IMAGE_TAG"
     EOT
