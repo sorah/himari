@@ -60,6 +60,24 @@ main > header img, main > footer img {
   margin-top: 30px;
 }
 
+.consent-detail {
+  margin: 12px 0 24px;
+}
+.consent-scopes {
+  display: inline-block;
+  text-align: left;
+}
+.himari-consent .actions form {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+.consent-deny {
+  border-color: #4E6994 !important;
+  background: transparent !important;
+  color: #4E6994 !important;
+}
+
 .notice {
   background-color: white;
   border: 1px #bfa88a solid;

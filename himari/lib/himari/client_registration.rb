@@ -9,7 +9,7 @@ module Himari
     # draft-ietf-oauth-v2-1-15 §8.4.2). Addressable returns IPv6 hosts bracketed.
     LOOPBACK_HOSTS = %w[127.0.0.1 [::1] localhost].freeze
 
-    def initialize(id:, redirect_uris:, name: nil, secret: nil, secret_hash: nil, preferred_key_group: nil, require_pkce: false, confidential: true, ignore_localhost_redirect_uri_port: true)
+    def initialize(id:, redirect_uris:, name: nil, secret: nil, secret_hash: nil, preferred_key_group: nil, require_pkce: false, confidential: true, ignore_localhost_redirect_uri_port: true, skip_consent: false)
       @name = name
       @id = id
       @secret = secret
@@ -19,12 +19,13 @@ module Himari
       @require_pkce = require_pkce
       @confidential = confidential
       @ignore_localhost_redirect_uri_port = ignore_localhost_redirect_uri_port
+      @skip_consent = skip_consent
 
       raise ArgumentError, "name starts with '_' is reserved" if @name&.start_with?('_')
       raise ArgumentError, "either secret or secret_hash must be present" if confidential && !@secret && !@secret_hash
     end
 
-    attr_reader :name, :id, :redirect_uris, :preferred_key_group, :require_pkce, :ignore_localhost_redirect_uri_port
+    attr_reader :name, :id, :redirect_uris, :preferred_key_group, :require_pkce, :ignore_localhost_redirect_uri_port, :skip_consent
 
     def confidential?
       @confidential
@@ -57,7 +58,7 @@ module Himari
     end
 
     def as_log
-      {name: name, id: id}
+      {name: name, id: id, skip_consent: skip_consent}
     end
 
     def match_hint?(id: nil)

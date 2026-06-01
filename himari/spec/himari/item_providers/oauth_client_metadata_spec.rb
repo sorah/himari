@@ -56,6 +56,10 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         expect(client.match_hint?(id: url)).to eq(true)
       end
 
+      it 'skips consent for metadata clients' do
+        expect(provider.collect(id: url).first.skip_consent).to eq(true)
+      end
+
       it 'enables ignore_localhost_redirect_uri_port by default' do
         expect(provider.collect(id: url).first.ignore_localhost_redirect_uri_port).to eq(true)
       end

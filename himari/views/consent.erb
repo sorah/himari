@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title><%= h(msg(:consent_page_title, nil) || msg(:consent_title, "Authorize access")) %></title>
+    <link rel="stylesheet" href="/public/index.css?cb=<%= cachebuster %>" type="text/css" />
+    <meta name="viewport" content="initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+
+    <meta name="himari:release" content="<%= release_code %>">
+  </head>
+
+  <body class='himari-app himari-consent'>
+    <main>
+
+      <header>
+        <h1><%= msg(:consent_title, "Authorize access") %></h1>
+        <%= msg(:consent_header) %>
+
+        <% if @notice %>
+          <div class='notice'>
+            <p><%=h @notice %></p>
+          </div>
+        <% end %>
+      </header>
+
+      <section class='consent-detail'>
+        <p><strong><%=h(@consent_client.name || @consent_client.id) %></strong> <%= msg(:consent_request_message, "is requesting access to your account.") %></p>
+
+        <% if @consent_scopes.any? %>
+          <p><%= msg(:consent_scopes_message, "The following will be shared:") %></p>
+          <ul class='consent-scopes'>
+            <% @consent_scopes.each do |scope| %>
+              <li><%=h msg(:"scope_#{scope}", scope) %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p><%= msg(:consent_no_scopes_message, "Basic sign-in information will be shared.") %></p>
+        <% end %>
+      </section>
+
+      <nav class='actions'>
+        <form action="<%=h request.path %>" method="POST" id='consent-form'>
+          <input type="hidden" name="<%= csrf_token_name %>" value="<%= csrf_token_value %>" />
+          <% request.GET.each do |k, v| %>
+            <% next if k == csrf_token_name || k == '_consent' %>
+            <input type="hidden" name="<%=h k %>" value="<%=h v %>" />
+          <% end %>
+          <button type='submit' name='_consent' value='approve' class='consent-approve'><%= msg(:consent_approve, "Approve") %></button>
+          <button type='submit' name='_consent' value='deny' class='consent-deny'><%= msg(:consent_deny, "Deny") %></button>
+        </form>
+      </nav>
+
+      <footer>
+        <%= msg(:consent_footer) %>
+      </footer>
+    </main>
+  </body>
+</html>

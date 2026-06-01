@@ -150,6 +150,7 @@ module Himari
           confidential: false,
           require_pkce: @require_pkce,
           ignore_localhost_redirect_uri_port: @ignore_localhost_redirect_uri_port,
+          skip_consent: true,
         )
       end
 

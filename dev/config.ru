@@ -41,6 +41,11 @@ use(
         </small>
       </p>
     EOH
+    # Friendly labels for the consent page scope list (msg(:"scope_#{name}", name)).
+    scope_openid: 'Sign you in',
+    scope_offline_access: 'Keep you signed in while offline',
+    scope_profile: 'Your profile information',
+    scope_email: 'Your email address',
   },
 )
 
@@ -69,7 +74,9 @@ if File.exist?(File.join(__dir__, 'tmp/ec.pem'))
   )
 end
 
-# Add clients as many as you need
+# Add clients as many as you need.
+# skip_consent: true so a normal login skips the consent page; the RP's "prompt=consent" button
+# then forces it, exercising both paths with a single client.
 use(
   Himari::Middlewares::Client,
   name: 'client1', # friendly name (this can be referenced from policies)
@@ -77,6 +84,7 @@ use(
   secret: 'himitsudayo1',
   redirect_uris: %w(http://himari-rp.localhost:1355/auth/himari/callback),
   preferred_key_group: nil,
+  skip_consent: true,
 )
 
 # Enable RFC 7591 Dynamic Client Registration (POST /public/oidc/register). Registered

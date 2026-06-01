@@ -21,6 +21,13 @@ class App < Sinatra::Base
       %(<input type="hidden" name="authenticity_token" value="#{Rack::Protection::AuthenticityToken.token(session)}">)
     end
 
+    # A login button; prompt is forwarded to the OP authorize request (the strategy reads
+    # request.GET['prompt']), letting you force the consent page on a skip_consent client.
+    def login_button(label, prompt: nil)
+      action = "/auth/himari#{prompt ? "?prompt=#{prompt}" : ""}"
+      %(<form action="#{action}" method=POST style="display:inline">#{csrf}<button>#{Rack::Utils.escape_html(label)}</button></form>)
+    end
+
     def render_signed_in(creds)
       <<~HTML
         <h2>session credentials</h2>
@@ -46,7 +53,10 @@ class App < Sinatra::Base
     creds = session[:credentials]
     <<~HTML
       <h1>himari dev RP</h1>
-      <form action=/auth/himari method=POST>#{csrf}<button>Log in</button></form>
+      <p>
+        #{login_button("Log in")}
+        #{login_button("Log in (prompt=consent)", prompt: "consent")}
+      </p>
       #{creds ? render_signed_in(creds) : "<p>not signed in</p>"}
     HTML
   end
