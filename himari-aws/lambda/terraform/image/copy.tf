@@ -1,6 +1,4 @@
-ephemeral "aws_ecr_authorization_token" "repo" {
-  registry_id = aws_ecr_repository.repo.registry_id
-}
+ephemeral "aws_ecr_authorization_token" "repo" {}
 
 locals {
   # Map Lambda's architecture notation to the source image's OS/arch so skopeo
