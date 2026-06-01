@@ -15,7 +15,7 @@ module Himari
     class OidcTokenEndpoint
       class SigningKeyMissing < StandardError; end
 
-      Issued = Struct.new(:access, :id_token_jwt, :signing_key, keyword_init: true)
+      Issued = Struct.new(:access, :access_token_string, :id_token_jwt, :signing_key, keyword_init: true)
 
       # @param client_provider [Himari::ProviderChain<Himari::ClientRegistration>]
       # @param signing_key_provider [Himari::ProviderChain<Himari::SigningKey>]
@@ -98,10 +98,12 @@ module Himari
         issued = issue_access_and_id(
           client: client,
           claims: authz.claims,
+          scopes: authz.scopes,
           lifetime: authz.lifetime,
           openid: authz.openid,
           session_handle: authz.session_handle,
           nonce: authz.nonce,
+          mint_jwt_access_token: authz.mint_jwt_access_token,
         )
 
         refresh = nil
@@ -110,7 +112,7 @@ module Himari
           @storage.put_refresh_token(refresh)
         end
 
-        bearer = issued.access.to_bearer
+        bearer = issued.access.to_bearer(token_string: issued.access_token_string)
         bearer.refresh_token = refresh.format.to_s if refresh
         res.access_token = bearer
         res.id_token = issued.id_token_jwt if issued.id_token_jwt
@@ -202,13 +204,15 @@ module Himari
         issued = issue_access_and_id(
           client: client,
           claims: downstream.claims,
+          scopes: downstream.scopes,
           lifetime: downstream.lifetime,
           openid: refresh.openid,
           session_handle: updated_session.handle,
           nonce: nil,
+          mint_jwt_access_token: downstream.mint_jwt_access_token,
         )
 
-        bearer = issued.access.to_bearer
+        bearer = issued.access.to_bearer(token_string: issued.access_token_string)
         bearer.refresh_token = rotated.format.to_s
         res.access_token = bearer
         res.id_token = issued.id_token_jwt if issued.id_token_jwt
@@ -231,28 +235,38 @@ module Himari
       # Mint an access token (and, for OIDC, an id_token JWT). Refresh tokens are handled
       # separately by each grant path: the authorization_code path mints a fresh one, while
       # the refresh path rotates the presented token in place.
-      private def issue_access_and_id(client:, claims:, lifetime:, openid:, session_handle:, nonce:)
-        access = AccessToken.make(client_id: client.id, claims: claims, session_handle: session_handle, lifetime: lifetime.access_token)
+      private def issue_access_and_id(client:, claims:, scopes:, lifetime:, openid:, session_handle:, nonce:, mint_jwt_access_token:)
+        access = AccessToken.make(client_id: client.id, claims: claims, scopes: scopes, session_handle: session_handle, lifetime: lifetime.access_token)
         @storage.put_token(access)
 
+        # Both the ID Token and a JWT access token are signed by the same key; resolve it once.
         signing_key = nil
-        id_token_jwt = nil
-        if openid
+        if openid || mint_jwt_access_token
           signing_key = @signing_key_provider.find(group: client.preferred_key_group, active: true)
           raise SigningKeyMissing unless signing_key
+        end
 
+        access_token_string = if mint_jwt_access_token
+          access.to_jwt(signing_key: signing_key, issuer: @issuer)
+        else
+          access.format.to_s
+        end
+
+        id_token_jwt = nil
+        if openid
           id_token_jwt = IdToken.new(
             claims: claims,
             client_id: client.id,
             nonce: nonce,
             signing_key: signing_key,
             issuer: @issuer,
-            access_token: access.format.to_s,
+            # at_hash binds the ID Token to the access token actually delivered (JWT or opaque).
+            access_token: access_token_string,
             lifetime: lifetime.id_token,
           ).to_jwt
         end
 
-        Issued.new(access: access, id_token_jwt: id_token_jwt, signing_key: signing_key)
+        Issued.new(access: access, access_token_string: access_token_string, id_token_jwt: id_token_jwt, signing_key: signing_key)
       end
     end
   end

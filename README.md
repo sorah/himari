@@ -123,6 +123,10 @@ use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decisi
   # filtered by the client's scopes allow-list), so rules can gate on them.
   next decision.deny!("admin scope not permitted here") if context.scopes.include?('admin')
 
+  # Issue the access token as a signed RFC 9068 JWT (at+jwt) for relying parties that validate
+  # it themselves; Himari still validates it against storage. Opaque by default.
+  decision.mint_jwt_access_token = true if context.client.name == 'api'
+
   decision.skip!
 end
 # we can have many rules

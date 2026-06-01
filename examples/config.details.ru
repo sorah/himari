@@ -172,6 +172,11 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
   decision.lifetime.access_token = 86400
   decision.lifetime.id_token = 900
 
+  # Issue the access token as a signed RFC 9068 JWT (at+jwt) carrying the same claims as the ID
+  # token, instead of an opaque token. Himari still validates it against storage, so revocation
+  # and lifetime behave identically. Default false.
+  decision.mint_jwt_access_token = true
+
   # Rule must always call one of the followings
   next decision.deny! # explicit deny, stop processing
   next decision.allow! # allow, continues processing

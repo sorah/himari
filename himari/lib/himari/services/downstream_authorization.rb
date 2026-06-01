@@ -23,12 +23,13 @@ module Himari
         end
       end
 
-      Result = Struct.new(:client, :claims, :scopes, :lifetime, :authz_result) do
+      Result = Struct.new(:client, :claims, :scopes, :lifetime, :mint_jwt_access_token, :authz_result) do
         def as_log
           {
             client: client.as_log,
             claims: claims,
             scopes: scopes,
+            mint_jwt_access_token: mint_jwt_access_token,
             decision: {
               authorization: authz_result.as_log,
             },
@@ -76,11 +77,12 @@ module Himari
         context = Himari::Decisions::Authorization::Context.new(claims: @session.claims, user_data: @session.user_data, request: @request, client: @client, scopes: scopes, grant_type: @grant_type).freeze
 
         authorization = Himari::RuleProcessor.new(context, Himari::Decisions::Authorization.new(claims: @session.claims.dup)).run(@authz_rules)
-        raise ForbiddenError.new(Result.new(@client, nil, scopes, nil, authorization)) unless authorization.allowed
+        raise ForbiddenError.new(Result.new(@client, nil, scopes, nil, nil, authorization)) unless authorization.allowed
 
         claims = authorization.decision.output_claims
         lifetime = authorization.decision.lifetime
-        Result.new(@client, claims, scopes, lifetime, authorization)
+        mint_jwt_access_token = authorization.decision.mint_jwt_access_token
+        Result.new(@client, claims, scopes, lifetime, mint_jwt_access_token, authorization)
       end
     end
   end
