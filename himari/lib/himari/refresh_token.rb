@@ -15,12 +15,13 @@ module Himari
       raise ArgumentError, "RefreshToken requires an explicit lifetime:"
     end
 
-    def initialize(handle:, client_id:, claims:, session_handle:, expiry:, openid: false, secret: nil, secret_hash: nil, secret_hash_prev: nil, version: 1, updated_at: nil)
+    def initialize(handle:, client_id:, claims:, session_handle:, expiry:, openid: false, scopes: [], secret: nil, secret_hash: nil, secret_hash_prev: nil, version: 1, updated_at: nil)
       @handle = handle
       @client_id = client_id
       @claims = claims
       @session_handle = session_handle
       @openid = openid
+      @scopes = scopes
       @expiry = expiry
 
       @secret = secret
@@ -31,7 +32,7 @@ module Himari
       @verification = nil
     end
 
-    attr_reader :handle, :client_id, :claims, :session_handle, :openid, :expiry, :version, :updated_at
+    attr_reader :handle, :client_id, :claims, :session_handle, :openid, :scopes, :expiry, :version, :updated_at
 
     # Rotate the token in place (same handle): mint a new current secret while keeping the
     # just-presented secret valid as the previous one, so a client whose rotation response is
@@ -49,6 +50,7 @@ module Himari
         session_handle:,
         claims:,
         openid:,
+        scopes:,
         secret: SecureRandom.urlsafe_base64(48),
         secret_hash_prev: verification.secret_hash,
         version: version + 1,
@@ -64,6 +66,7 @@ module Himari
         claims: claims,
         session_handle: session_handle,
         openid: openid,
+        scopes: scopes,
         expiry: expiry,
         version: version,
         updated_at: updated_at,
@@ -80,6 +83,7 @@ module Himari
         claims: claims,
         session_handle: session_handle,
         openid: openid,
+        scopes: scopes,
         expiry: expiry.to_i,
         version: version,
         updated_at: updated_at.to_i,

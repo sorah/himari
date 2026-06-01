@@ -118,6 +118,11 @@ use(Himari::Middlewares::AuthorizationRule, name: 'default') do |context, decisi
   if clients_available_for_everyone.include?(context.client.name)
     next decision.allow!
   end
+
+  # context.scopes carries the recognised scopes requested for this authorization (already
+  # filtered by the client's scopes allow-list), so rules can gate on them.
+  next decision.deny!("admin scope not permitted here") if context.scopes.include?('admin')
+
   decision.skip!
 end
 # we can have many rules

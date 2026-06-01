@@ -11,6 +11,7 @@ RSpec.describe Himari::RefreshToken do
         claims: {sub: 'c'},
         session_handle: 'sess',
         openid: true,
+        scopes: %w(openid profile),
         lifetime: 7200,
       )
     end
@@ -19,6 +20,7 @@ RSpec.describe Himari::RefreshToken do
       expect(r.client_id).to eq('cli')
       expect(r.claims).to eq(sub: 'c')
       expect(r.openid).to eq(true)
+      expect(r.scopes).to eq(%w(openid profile))
       expect(r.session_handle).to eq('sess')
       expect(r.handle).to be_a(String)
       expect(r.secret).to be_a(String)
@@ -37,6 +39,7 @@ RSpec.describe Himari::RefreshToken do
       expect(restored.client_id).to eq(r.client_id)
       expect(restored.session_handle).to eq(r.session_handle)
       expect(restored.openid).to eq(true)
+      expect(restored.scopes).to eq(%w(openid profile))
       expect(restored.verify_secret!(r.secret)).to eq(true)
     end
 
@@ -48,14 +51,14 @@ RSpec.describe Himari::RefreshToken do
     end
 
     specify "as_log omits secrets and reports prev_secret_set" do
-      expect(r.as_log.keys).to contain_exactly(:handle, :client_id, :claims, :session_handle, :openid, :expiry, :version, :updated_at, :prev_secret_set)
+      expect(r.as_log.keys).to contain_exactly(:handle, :client_id, :claims, :session_handle, :openid, :scopes, :expiry, :version, :updated_at, :prev_secret_set)
       expect(r.as_log).to include(prev_secret_set: false)
     end
   end
 
   describe "#rotate" do
     subject(:original) do
-      described_class.make(client_id: 'cli', claims: {sub: 'c'}, session_handle: 'sess', openid: true, lifetime: 7200)
+      described_class.make(client_id: 'cli', claims: {sub: 'c'}, session_handle: 'sess', openid: true, scopes: %w(openid profile), lifetime: 7200)
     end
 
     subject(:rotated) do
@@ -74,6 +77,10 @@ RSpec.describe Himari::RefreshToken do
       # expiry is the absolute cap from initial issuance, not slid forward on rotation
       expect(rotated.expiry).to eq(original.expiry)
       expect(rotated.claims).to eq(sub: 'c2')
+    end
+
+    specify "preserves the granted scopes across rotation" do
+      expect(rotated.scopes).to eq(%w(openid profile))
     end
 
     specify "issues a fresh secret and keeps the presented secret valid as previous" do

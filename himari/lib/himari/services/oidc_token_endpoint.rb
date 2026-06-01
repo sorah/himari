@@ -106,7 +106,7 @@ module Himari
 
         refresh = nil
         if authz.offline_access && authz.session_handle && authz.lifetime&.refresh_token
-          refresh = RefreshToken.make(client_id: client.id, claims: authz.claims, session_handle: authz.session_handle, openid: authz.openid, lifetime: authz.lifetime.refresh_token)
+          refresh = RefreshToken.make(client_id: client.id, claims: authz.claims, session_handle: authz.session_handle, openid: authz.openid, scopes: authz.scopes, lifetime: authz.lifetime.refresh_token)
           @storage.put_refresh_token(refresh)
         end
 
@@ -170,7 +170,7 @@ module Himari
         updated_session = authn.session_data
 
         begin
-          downstream = Himari::Services::DownstreamAuthorization.from_request(session: updated_session, client: client, request: rack_request, grant_type: :refresh_token).perform
+          downstream = Himari::Services::DownstreamAuthorization.from_request(session: updated_session, client: client, request: rack_request, grant_type: :refresh_token, requested_scopes: refresh.scopes).perform
         rescue Himari::Services::DownstreamAuthorization::ForbiddenError => e
           return reject_refresh!(env, req, client, 'refresh downstream authz denied', refresh: refresh, session: updated_session.as_log, result: e.as_log)
         end

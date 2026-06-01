@@ -151,6 +151,16 @@ use(Himari::Middlewares::AuthorizationRule, name: 'details') do |context, decisi
   # client
   context.client.name
 
+  # recognised scopes for this authorization (Array<String>), already filtered by the client's
+  # scopes allow-list. On the initial request these come from the request's scope parameter; on
+  # a refresh they are the scopes recorded on the original grant.
+  context.scopes
+
+  # grant type of the request (:initial or :refresh_token); predicates are also available
+  context.grant_type
+  context.initial?
+  context.refresh?
+
   # custom claims per authorization
   decision.claims[:something] = 'these claims merged for specific authorization request'
   # allowed claims (Set). Names not included in allowed_claims will not appear in an outbound ID token.
