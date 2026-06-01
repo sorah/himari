@@ -66,6 +66,9 @@ use(Himari::Middlewares::Client,
   secret_hash: '...', # sha384 hexdigest of secret
   # secret: '...' # or in cleartext
   redirect_uris: %w(https://app.example.net/oauth2/idpresponse),
+
+      # skip_consent: false # requires consent. default to true
+
   # Entries are matched by simple string comparison. A Regexp entry is matched
   # with #match? against the request redirect_uri instead, e.g.
   #   redirect_uris: [%r{\Ahttps://app\.example\.net/oauth2/[^/]+\z}]
@@ -154,7 +157,6 @@ Himari acts as an OIDC OpenID Provider. OIDC discovery metadata served at `/.wel
 
 ## Caveats
 
-- Consent/Authorize screen is not implemented. All authorization requests will be immediately approved on behalf of a logged in user, as long as AuthorizationRule permits.
 - Recognizes `openid` scope only.
 - Implements Authorization Code Grant Flow and [Refresh Token Grant Flow](./docs/refresh-tokens.md) only. Public clients should use the same flow with PKCE.
 
