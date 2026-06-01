@@ -12,7 +12,7 @@ locals {
 
 resource "null_resource" "copy-image" {
   triggers = {
-    region           = data.aws_region.current.name
+    region           = data.aws_region.current.region
     repository_url   = aws_ecr_repository.repo.repository_url
     source_image_tag = var.source_image_tag
     architecture     = var.architecture
