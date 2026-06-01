@@ -28,6 +28,18 @@ RSpec.describe Himari::ItemProviders::Storage do
     end
   end
 
+  it "defaults resolved clients to the implicit scopes" do
+    expect(provider.collect(id: client.id).first.scopes).to contain_exactly('openid', 'offline_access')
+  end
+
+  context "with scopes configured" do
+    subject(:provider) { described_class.new(storage: storage, scopes: %w(profile)) }
+
+    it "applies the configured scopes to resolved clients" do
+      expect(provider.collect(id: client.id).first.scopes).to contain_exactly('openid', 'offline_access', 'profile')
+    end
+  end
+
   it "returns nothing without an id hint" do
     expect(provider.collect).to eq([])
   end

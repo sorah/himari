@@ -34,7 +34,7 @@ module Himari
       # @param session [HTTPX::Session] persistent, SSRF-filtered session (built by the middleware)
       # @param allowed_client_ids [Array<String, Regexp>] empty = allow any compliant https URL
       def initialize(session:, allowed_client_ids: [], require_pkce: true, ignore_localhost_redirect_uri_port: true,
-        skip_consent: false,
+        skip_consent: false, scopes: Himari::ClientRegistration::IMPLICIT_SCOPES,
         max_response_size: 5120,
         cache_min_ttl: 60, cache_max_ttl: 86400, cache_default_ttl: 300, cache_max_total_size: 1_048_576, logger: nil)
         @session = session
@@ -42,6 +42,7 @@ module Himari
         @require_pkce = require_pkce
         @ignore_localhost_redirect_uri_port = ignore_localhost_redirect_uri_port
         @skip_consent = skip_consent
+        @scopes = scopes
         @max_response_size = max_response_size
         @cache_min_ttl = cache_min_ttl
         @cache_max_ttl = cache_max_ttl
@@ -153,6 +154,7 @@ module Himari
           require_pkce: @require_pkce,
           ignore_localhost_redirect_uri_port: @ignore_localhost_redirect_uri_port,
           skip_consent: @skip_consent,
+          scopes: @scopes,
         )
       end
 

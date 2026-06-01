@@ -68,6 +68,18 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         end
       end
 
+      it 'defaults to the implicit scopes' do
+        expect(provider.collect(id: url).first.scopes).to contain_exactly('openid', 'offline_access')
+      end
+
+      context 'with scopes configured' do
+        let(:options) { {scopes: %w(profile)} }
+
+        it 'inherits the configured scopes onto the registration' do
+          expect(provider.collect(id: url).first.scopes).to contain_exactly('openid', 'offline_access', 'profile')
+        end
+      end
+
       it 'enables ignore_localhost_redirect_uri_port by default' do
         expect(provider.collect(id: url).first.ignore_localhost_redirect_uri_port).to eq(true)
       end
