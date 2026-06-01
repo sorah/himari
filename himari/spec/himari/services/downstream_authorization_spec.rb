@@ -53,6 +53,21 @@ RSpec.describe Himari::Services::DownstreamAuthorization do
     end
   end
 
+  describe "mint_jwt_access_token" do
+    it "defaults to false and carries a rule's opt-in onto the Result" do
+      expect(described_class.new(session: session_data, client: client, request: rack_request, requested_scopes: requested_scopes, authz_rules: [
+        Himari::Rule.new(name: 'allow', block: proc { |_c, d| d.allow! }),
+      ]).perform.mint_jwt_access_token).to eq(false)
+
+      expect(described_class.new(session: session_data, client: client, request: rack_request, requested_scopes: requested_scopes, authz_rules: [
+        Himari::Rule.new(name: 'allow', block: proc { |_c, d|
+          d.mint_jwt_access_token = true
+          d.allow!
+        }),
+      ]).perform.mint_jwt_access_token).to eq(true)
+    end
+  end
+
   describe "scope filtering" do
     it "filters the requested scopes through the client's allow-list and exposes them to rules" do
       expect(client).to receive(:filter_scopes).with(%w(openid profile email)).and_return(%w(openid profile))

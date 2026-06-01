@@ -9,6 +9,7 @@ module Himari
     client_id
     claims
     scopes
+    mint_jwt_access_token
     openid
     offline_access
     session_handle
@@ -86,6 +87,7 @@ module Himari
         claims: claims,
         nonce: nonce,
         scopes: scopes,
+        mint_jwt_access_token: mint_jwt_access_token,
         openid: openid,
         offline_access: offline_access,
         session_handle: session_handle,
@@ -104,6 +106,7 @@ module Himari
         client_id: client_id,
         claims: claims,
         scopes: scopes,
+        mint_jwt_access_token: mint_jwt_access_token,
         openid: openid,
         offline_access: offline_access,
         session_handle: session_handle,

@@ -187,6 +187,7 @@ module Himari
           client_id: decision.client.id,
           claims: decision.claims,
           lifetime: decision.lifetime,
+          mint_jwt_access_token: decision.mint_jwt_access_token,
           session_handle: current_user.handle,
         )
 
@@ -249,6 +250,7 @@ module Himari
     userinfo_ep = proc do
       Himari::Services::OidcUserinfoEndpoint.new(
         storage: config.storage,
+        signing_key_provider: signing_key_provider,
         logger: logger,
       ).call(env)
     end

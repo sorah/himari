@@ -249,6 +249,31 @@ RSpec.describe Himari::Services::OidcTokenEndpoint do
       end
     end
 
+    context "with mint_jwt_access_token (RFC 9068)" do
+      let(:authz) { Himari::AuthorizationCode.make(client_id: 'clientid', claims: {sub: 'chihiro'}, redirect_uri: 'https://rp.invalid/cb', openid: scope_openid, scopes: %w(openid profile), mint_jwt_access_token: true, lifetime: lifetime_value) }
+
+      it "delivers a signed JWT access token that still validates against storage via hmat" do
+        post '/oidc/token', 'grant_type' => 'authorization_code', 'code' => authz.code, 'redirect_uri' => 'https://rp.invalid/cb'
+        expect(last_response.status).to eq(200)
+        body = JSON.parse(last_response.body, symbolize_names: true)
+
+        at = body[:access_token]
+        # verifiable by the signing key, RFC 9068 typ, and carries the IdP claims + granted scope
+        decoded = JSON::JWT.decode(at, pkey)
+        expect(decoded.header[:typ]).to eq('at+jwt')
+        expect(decoded[:sub]).to eq('chihiro')
+        expect(decoded[:client_id]).to eq('clientid')
+        expect(decoded[:scope]).to eq('openid profile')
+
+        # Himari authenticates it through the embedded opaque token
+        allow(signing_key_provider).to receive(:find).with(id: 'kid').and_return(signing_key)
+        parsed = Himari::AccessToken.parse(at, signing_key_provider: signing_key_provider)
+        token = storage.find_token(parsed.handle)
+        expect(token).not_to be_nil
+        expect(token.verify_secret!(parsed.secret)).to eq(true)
+      end
+    end
+
     context "using openid scope" do
       let(:scope_openid) { true }
 

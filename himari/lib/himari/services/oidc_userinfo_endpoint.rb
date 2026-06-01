@@ -8,9 +8,12 @@ module Himari
   module Services
     class OidcUserinfoEndpoint
       # @param storage [Himari::Storages::Base]
+      # @param signing_key_provider [Himari::ProviderChain<Himari::SigningKey>] verifies RFC 9068
+      #   JWT access tokens; opaque tokens do not need it
       # @param logger [Logger]
-      def initialize(storage:, logger: nil)
+      def initialize(storage:, signing_key_provider: nil, logger: nil)
         @storage = storage
+        @signing_key_provider = signing_key_provider
         @logger = logger
       end
 
@@ -19,14 +22,15 @@ module Himari
       end
 
       def call(env)
-        Handler.new(storage: @storage, env: env, logger: @logger).response
+        Handler.new(storage: @storage, signing_key_provider: @signing_key_provider, env: env, logger: @logger).response
       end
 
       class Handler
         class InvalidToken < StandardError; end
 
-        def initialize(storage:, env:, logger:)
+        def initialize(storage:, env:, logger:, signing_key_provider: nil)
           @storage = storage
+          @signing_key_provider = signing_key_provider
           @env = env
           @logger = logger
         end
@@ -37,7 +41,7 @@ module Himari
 
           raise InvalidToken unless given_token
 
-          given_parsed_token = Himari::AccessToken.parse(given_token)
+          given_parsed_token = Himari::AccessToken.parse(given_token, signing_key_provider: @signing_key_provider)
 
           token = @storage.find_token(given_parsed_token.handle)
           raise InvalidToken unless token
