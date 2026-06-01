@@ -56,8 +56,16 @@ RSpec.describe Himari::ItemProviders::OauthClientMetadata do
         expect(client.match_hint?(id: url)).to eq(true)
       end
 
-      it 'skips consent for metadata clients' do
-        expect(provider.collect(id: url).first.skip_consent).to eq(true)
+      it 'does not skip consent for metadata clients by default' do
+        expect(provider.collect(id: url).first.skip_consent).to eq(false)
+      end
+
+      context 'with skip_consent enabled' do
+        let(:options) { {skip_consent: true} }
+
+        it 'lets the metadata client bypass consent' do
+          expect(provider.collect(id: url).first.skip_consent).to eq(true)
+        end
       end
 
       it 'enables ignore_localhost_redirect_uri_port by default' do

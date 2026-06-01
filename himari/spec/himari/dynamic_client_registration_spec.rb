@@ -24,8 +24,12 @@ RSpec.describe Himari::DynamicClientRegistration do
         expect(client.response_types).to eq(%w(code))
       end
 
-      it "skips consent on the converted ClientRegistration" do
-        expect(client.to_client_registration.skip_consent).to eq(true)
+      it "does not skip consent on the converted ClientRegistration by default" do
+        expect(client.to_client_registration.skip_consent).to eq(false)
+      end
+
+      it "skips consent when the provider opts in" do
+        expect(client.to_client_registration(skip_consent: true).skip_consent).to eq(true)
       end
 
       it "omits client_secret from the registration response" do
