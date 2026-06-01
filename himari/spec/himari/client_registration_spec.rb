@@ -45,6 +45,34 @@ RSpec.describe Himari::ClientRegistration do
     end
   end
 
+  describe "#scopes" do
+    it "defaults to the implicit scopes" do
+      expect(described_class.new(id: 'a', redirect_uris: [], confidential: false).scopes).to contain_exactly('openid', 'offline_access')
+    end
+
+    it "unions configured scopes with the implicit ones" do
+      client = described_class.new(id: 'a', redirect_uris: [], confidential: false, scopes: %w(profile openid))
+      expect(client.scopes).to contain_exactly('openid', 'offline_access', 'profile')
+    end
+  end
+
+  describe "#filter_scopes" do
+    let(:client) { described_class.new(id: 'a', redirect_uris: [], confidential: false, scopes: %w(profile)) }
+
+    it "drops unrecognised scopes while preserving request order" do
+      expect(client.filter_scopes(%w(email profile openid))).to eq(%w(profile openid))
+    end
+
+    it "always recognises the implicit scopes" do
+      client = described_class.new(id: 'a', redirect_uris: [], confidential: false, scopes: %w(profile))
+      expect(client.filter_scopes(%w(openid offline_access))).to eq(%w(openid offline_access))
+    end
+
+    it "handles nil" do
+      expect(client.filter_scopes(nil)).to eq([])
+    end
+  end
+
   describe "confidential validation" do
     it "requires a secret for confidential clients" do
       expect { described_class.new(id: 'a', redirect_uris: []) }.to raise_error(ArgumentError)

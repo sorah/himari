@@ -25,6 +25,8 @@ module Himari
     # - ignore_localhost_redirect_uri_port [Boolean] relax the port of loopback redirect_uris when
     #   matching at the authorization endpoint (default true; see RFC 8252 §7.3).
     # - skip_consent [Boolean] let metadata clients bypass the consent page (default false).
+    # - scopes [Array<String>] recognised scopes inherited by metadata clients; scopes outside
+    #   this list are dropped from authorization requests (default openid, offline_access).
     # - ssrf [true, false, Hash] SSRF filtering. true (default) restricts to https; a Hash is
     #   merged into the ssrf_filter plugin options (e.g. allowed_schemes); false disables it
     #   (only for an authorization server running on a loopback address).
@@ -42,7 +44,7 @@ module Himari
       # would let a slow sender hold the fetch open indefinitely.
       DEFAULT_HTTP_TIMEOUT = {connect_timeout: 5, request_timeout: 10, read_timeout: 10}.freeze
 
-      Options = Data.define(:allowed_client_ids, :require_pkce, :ignore_localhost_redirect_uri_port, :skip_consent, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
+      Options = Data.define(:allowed_client_ids, :require_pkce, :ignore_localhost_redirect_uri_port, :skip_consent, :scopes, :ssrf, :user_agent, :http_timeout, :max_response_size, :cache_min_ttl, :cache_max_ttl, :cache_default_ttl, :cache_max_total_size)
 
       def initialize(app, kwargs = {})
         @app = app
@@ -51,6 +53,7 @@ module Himari
           require_pkce: kwargs.fetch(:require_pkce, true),
           ignore_localhost_redirect_uri_port: kwargs.fetch(:ignore_localhost_redirect_uri_port, true),
           skip_consent: kwargs.fetch(:skip_consent, false),
+          scopes: kwargs.fetch(:scopes, Himari::ClientRegistration::IMPLICIT_SCOPES),
           ssrf: kwargs.fetch(:ssrf, true),
           user_agent: kwargs.fetch(:user_agent, DEFAULT_USER_AGENT),
           http_timeout: kwargs.fetch(:http_timeout, DEFAULT_HTTP_TIMEOUT),
@@ -66,6 +69,7 @@ module Himari
           require_pkce: @options.require_pkce,
           ignore_localhost_redirect_uri_port: @options.ignore_localhost_redirect_uri_port,
           skip_consent: @options.skip_consent,
+          scopes: @options.scopes,
           max_response_size: @options.max_response_size,
           cache_min_ttl: @options.cache_min_ttl,
           cache_max_ttl: @options.cache_max_ttl,

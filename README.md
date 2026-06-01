@@ -69,6 +69,9 @@ use(Himari::Middlewares::Client,
 
       # skip_consent: false # requires consent. default to true
 
+  # scopes: %w(openid offline_access), # (default) recognised scopes. Requested scopes outside
+  #   this list are dropped before consent/grant; openid and offline_access are always recognised.
+
   # Entries are matched by simple string comparison. A Regexp entry is matched
   # with #match? against the request redirect_uri instead, e.g.
   #   redirect_uris: [%r{\Ahttps://app\.example\.net/oauth2/[^/]+\z}]
@@ -157,7 +160,7 @@ Himari acts as an OIDC OpenID Provider. OIDC discovery metadata served at `/.wel
 
 ## Caveats
 
-- Recognizes `openid` scope only.
+- Acts on the `openid` and `offline_access` scopes; any other requested scope is recognised only when listed in a client's `scopes`, and otherwise dropped from the request.
 - Implements Authorization Code Grant Flow and [Refresh Token Grant Flow](./docs/refresh-tokens.md) only. Public clients should use the same flow with PKCE.
 
 ## Development

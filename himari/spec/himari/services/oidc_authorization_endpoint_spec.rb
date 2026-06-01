@@ -174,12 +174,24 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
     let(:skip_consent) { false }
 
     context "with no consent decision yet" do
-      it "raises ConsentRequired carrying the client and scopes" do
+      it "raises ConsentRequired carrying the client and recognised scopes only" do
         expect do
           get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid+profile&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
         end.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ConsentRequired) do |e|
           expect(e.client).to eq(client)
-          expect(e.scopes).to contain_exactly('openid', 'profile')
+          expect(e.scopes).to contain_exactly('openid')
+        end
+      end
+
+      context "when the client declares the requested scope" do
+        let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, skip_consent:, scopes: %w(profile)) }
+
+        it "keeps the declared scope alongside the implicit ones" do
+          expect do
+            get '/oidc/authorize?client_id=clientid&response_type=code&scope=openid+profile&state=x&redirect_uri=https%3A%2F%2Frp.invalid%2Fcb&nonce=nn'
+          end.to raise_error(Himari::Services::OidcAuthorizationEndpoint::ConsentRequired) do |e|
+            expect(e.scopes).to contain_exactly('openid', 'profile')
+          end
         end
       end
     end

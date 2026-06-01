@@ -9,7 +9,11 @@ module Himari
     # draft-ietf-oauth-v2-1-15 §8.4.2). Addressable returns IPv6 hosts bracketed.
     LOOPBACK_HOSTS = %w[127.0.0.1 [::1] localhost].freeze
 
-    def initialize(id:, redirect_uris:, name: nil, secret: nil, secret_hash: nil, preferred_key_group: nil, require_pkce: false, confidential: true, ignore_localhost_redirect_uri_port: true, skip_consent: false)
+    # Scopes Himari itself acts on; recognised for every client regardless of the configured
+    # scopes list, so a client need not enumerate them to use OIDC or obtain a refresh token.
+    IMPLICIT_SCOPES = %w[openid offline_access].freeze
+
+    def initialize(id:, redirect_uris:, name: nil, secret: nil, secret_hash: nil, preferred_key_group: nil, require_pkce: false, confidential: true, ignore_localhost_redirect_uri_port: true, skip_consent: false, scopes: IMPLICIT_SCOPES)
       @name = name
       @id = id
       @secret = secret
@@ -20,12 +24,13 @@ module Himari
       @confidential = confidential
       @ignore_localhost_redirect_uri_port = ignore_localhost_redirect_uri_port
       @skip_consent = skip_consent
+      @scopes = (Array(scopes) | IMPLICIT_SCOPES).freeze
 
       raise ArgumentError, "name starts with '_' is reserved" if @name&.start_with?('_')
       raise ArgumentError, "either secret or secret_hash must be present" if confidential && !@secret && !@secret_hash
     end
 
-    attr_reader :name, :id, :redirect_uris, :preferred_key_group, :require_pkce, :ignore_localhost_redirect_uri_port, :skip_consent
+    attr_reader :name, :id, :redirect_uris, :preferred_key_group, :require_pkce, :ignore_localhost_redirect_uri_port, :skip_consent, :scopes
 
     def confidential?
       @confidential
@@ -57,8 +62,15 @@ module Himari
       redirect_uris.any? { |registered| redirect_uri_match?(registered, given) }
     end
 
+    # Drop requested scopes this client does not recognise. OAuth servers are expected to ignore
+    # unknown scopes rather than reject the request (draft-ietf-oauth-v2-1 §3.2.2.1); request
+    # order is preserved.
+    def filter_scopes(requested)
+      Array(requested).select { |scope| scopes.include?(scope) }
+    end
+
     def as_log
-      {name: name, id: id, skip_consent: skip_consent}
+      {name: name, id: id, skip_consent: skip_consent, scopes: scopes}
     end
 
     def match_hint?(id: nil)

@@ -73,6 +73,9 @@ module Himari
           req.bad_request!(:invalid_request, 'prompt=none should not contain any other value') if req.prompt.include?('none') && req.prompt.any? { |x| x != 'none' }
           raise ReauthenticationRequired if req.prompt.include?('login') || req.prompt.include?('select_account')
 
+          # Drop scopes this client does not recognise before they reach consent or the grant.
+          scopes = @client.filter_scopes(req.scope)
+
           # Consent gate. Clients granted skip_consent (the default for dynamically/metadata-
           # registered clients) bypass it; prompt=consent forces the page regardless.
           if !@client.skip_consent || req.prompt.include?('consent')
@@ -86,7 +89,7 @@ module Himari
               # instead of rendering the page.
               next req.consent_required! if req.prompt.include?('none')
 
-              raise ConsentRequired.new(client: @client, scopes: req.scope)
+              raise ConsentRequired.new(client: @client, scopes: scopes)
             end
           end
 
@@ -99,8 +102,8 @@ module Himari
             @authz.redirect_uri = res.redirect_uri
             @authz.nonce = req.nonce
 
-            @authz.openid = req.scope.include?('openid')
-            @authz.offline_access = req.scope.include?('offline_access')
+            @authz.openid = scopes.include?('openid')
+            @authz.offline_access = scopes.include?('offline_access')
             if req.code_challenge && req.code_challenge_method
               @authz.code_challenge = req.code_challenge
               @authz.code_challenge_method = req.code_challenge_method || 'plain'
