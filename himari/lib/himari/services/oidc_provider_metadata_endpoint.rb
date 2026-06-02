@@ -42,7 +42,7 @@ module Himari
             jwks_uri: "#{@issuer}/public/jwks",
             registration_endpoint: @registration_endpoint,
             client_id_metadata_document_supported: @client_id_metadata_document_supported ? true : nil,
-            scopes_supported: %w(openid),
+            scopes_supported: %w(openid refresh_token),
             response_types_supported: ['code'], # violation: dynamic OpenID Provider MUST support code, id_token, token+id_token
             grant_types_supported: %w(authorization_code refresh_token),
             token_endpoint_auth_methods_supported: %w(client_secret_basic client_secret_post none),
