@@ -4,7 +4,7 @@ module Himari
   module Services
     class OidcProviderMetadataEndpoint
       # Scopes and claims Himari always advertises; configured values are merged on top.
-      DEFAULT_SCOPES_SUPPORTED = %w(openid refresh_token).freeze
+      DEFAULT_SCOPES_SUPPORTED = %w(openid offline_access).freeze
       DEFAULT_CLAIMS_SUPPORTED = %w(sub iss iat nbf exp).freeze
 
       # @param signing_key_provider [Himari::ProviderChain<Himari::SigningKey>]
