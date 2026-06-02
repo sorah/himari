@@ -3,14 +3,22 @@
 module Himari
   module Services
     class OidcProviderMetadataEndpoint
+      # Scopes and claims Himari always advertises; configured values are merged on top.
+      DEFAULT_SCOPES_SUPPORTED = %w(openid refresh_token).freeze
+      DEFAULT_CLAIMS_SUPPORTED = %w(sub iss iat nbf exp).freeze
+
       # @param signing_key_provider [Himari::ProviderChain<Himari::SigningKey>]
       # @param registration_endpoint [String, nil] advertised when Dynamic Client Registration is enabled
       # @param client_id_metadata_document_supported [Boolean] advertised when OAuth Client ID Metadata Document support is enabled
-      def initialize(signing_key_provider:, issuer:, registration_endpoint: nil, client_id_metadata_document_supported: false)
+      # @param scopes_supported [Array<String>] extra scopes to advertise alongside the defaults
+      # @param claims_supported [Array<String>] extra claims to advertise alongside the defaults
+      def initialize(signing_key_provider:, issuer:, registration_endpoint: nil, client_id_metadata_document_supported: false, scopes_supported: [], claims_supported: [])
         @signing_key_provider = signing_key_provider
         @issuer = issuer
         @registration_endpoint = registration_endpoint
         @client_id_metadata_document_supported = client_id_metadata_document_supported
+        @scopes_supported = scopes_supported
+        @claims_supported = claims_supported
       end
 
       def app
@@ -18,17 +26,19 @@ module Himari
       end
 
       def call(env)
-        Handler.new(signing_key_provider: @signing_key_provider, issuer: @issuer, registration_endpoint: @registration_endpoint, client_id_metadata_document_supported: @client_id_metadata_document_supported, env: env).response
+        Handler.new(signing_key_provider: @signing_key_provider, issuer: @issuer, registration_endpoint: @registration_endpoint, client_id_metadata_document_supported: @client_id_metadata_document_supported, scopes_supported: @scopes_supported, claims_supported: @claims_supported, env: env).response
       end
 
       class Handler
         class InvalidToken < StandardError; end
 
-        def initialize(signing_key_provider:, issuer:, env:, registration_endpoint: nil, client_id_metadata_document_supported: false)
+        def initialize(signing_key_provider:, issuer:, env:, registration_endpoint: nil, client_id_metadata_document_supported: false, scopes_supported: [], claims_supported: [])
           @signing_key_provider = signing_key_provider
           @issuer = issuer
           @registration_endpoint = registration_endpoint
           @client_id_metadata_document_supported = client_id_metadata_document_supported
+          @scopes_supported = scopes_supported
+          @claims_supported = claims_supported
           @env = env
         end
 
@@ -42,14 +52,14 @@ module Himari
             jwks_uri: "#{@issuer}/public/jwks",
             registration_endpoint: @registration_endpoint,
             client_id_metadata_document_supported: @client_id_metadata_document_supported ? true : nil,
-            scopes_supported: %w(openid refresh_token),
+            scopes_supported: (DEFAULT_SCOPES_SUPPORTED + @scopes_supported).uniq,
             response_types_supported: ['code'], # violation: dynamic OpenID Provider MUST support code, id_token, token+id_token
             grant_types_supported: %w(authorization_code refresh_token),
             token_endpoint_auth_methods_supported: %w(client_secret_basic client_secret_post none),
             code_challenge_methods_supported: %w(S256 plain),
             subject_types_supported: ['public'],
             id_token_signing_alg_values_supported: signing_keys.map(&:alg).uniq.sort,
-            claims_supported: %w(sub iss iat nbf exp),
+            claims_supported: (DEFAULT_CLAIMS_SUPPORTED + @claims_supported).uniq,
           }.compact
         end
 

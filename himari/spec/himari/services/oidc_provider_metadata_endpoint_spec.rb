@@ -15,7 +15,9 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
   let(:signing_key_provider) { double('chain', collect: keys) }
   let(:registration_endpoint) { nil }
   let(:client_id_metadata_document_supported) { false }
-  let(:app) { described_class.new(signing_key_provider: signing_key_provider, issuer: 'https://test.invalid', registration_endpoint: registration_endpoint, client_id_metadata_document_supported: client_id_metadata_document_supported) }
+  let(:scopes_supported) { [] }
+  let(:claims_supported) { [] }
+  let(:app) { described_class.new(signing_key_provider: signing_key_provider, issuer: 'https://test.invalid', registration_endpoint: registration_endpoint, client_id_metadata_document_supported: client_id_metadata_document_supported, scopes_supported: scopes_supported, claims_supported: claims_supported) }
 
   context "with non-GET request" do
     it "returns 404" do
@@ -68,6 +70,39 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
           get '/.well-known/openid-configuration'
           body = JSON.parse(last_response.body, symbolize_names: true)
           expect(body[:client_id_metadata_document_supported]).to eq(true)
+        end
+      end
+
+      context "without additional scopes/claims" do
+        it "advertises the default scopes and claims" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body[:scopes_supported]).to eq(%w(openid refresh_token))
+          expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp))
+        end
+      end
+
+      context "with additional scopes/claims" do
+        let(:scopes_supported) { %w(profile email) }
+        let(:claims_supported) { %w(name email) }
+
+        it "merges them with the defaults" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body[:scopes_supported]).to eq(%w(openid refresh_token profile email))
+          expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp name email))
+        end
+      end
+
+      context "with additional scopes/claims overlapping the defaults" do
+        let(:scopes_supported) { %w(openid profile) }
+        let(:claims_supported) { %w(sub name) }
+
+        it "de-duplicates while preserving order" do
+          get '/.well-known/openid-configuration'
+          body = JSON.parse(last_response.body, symbolize_names: true)
+          expect(body[:scopes_supported]).to eq(%w(openid refresh_token profile))
+          expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp name))
         end
       end
     end

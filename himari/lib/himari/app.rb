@@ -296,6 +296,8 @@ module Himari
         issuer: config.issuer,
         registration_endpoint: dynamic_clients_enabled? ? "#{config.issuer}/public/oidc/register" : nil,
         client_id_metadata_document_supported: metadata_clients_enabled?,
+        scopes_supported: config.scopes_supported,
+        claims_supported: config.claims_supported,
       ).call(env)
     end
     # OpenID Connect Discovery 1.0
