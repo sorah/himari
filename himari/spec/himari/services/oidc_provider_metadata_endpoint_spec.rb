@@ -77,7 +77,7 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         it "advertises the default scopes and claims" do
           get '/.well-known/openid-configuration'
           body = JSON.parse(last_response.body, symbolize_names: true)
-          expect(body[:scopes_supported]).to eq(%w(openid refresh_token))
+          expect(body[:scopes_supported]).to eq(%w(openid offline_access))
           expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp))
         end
       end
@@ -89,7 +89,7 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         it "merges them with the defaults" do
           get '/.well-known/openid-configuration'
           body = JSON.parse(last_response.body, symbolize_names: true)
-          expect(body[:scopes_supported]).to eq(%w(openid refresh_token profile email))
+          expect(body[:scopes_supported]).to eq(%w(openid offline_access profile email))
           expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp name email))
         end
       end
@@ -101,7 +101,7 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         it "de-duplicates while preserving order" do
           get '/.well-known/openid-configuration'
           body = JSON.parse(last_response.body, symbolize_names: true)
-          expect(body[:scopes_supported]).to eq(%w(openid refresh_token profile))
+          expect(body[:scopes_supported]).to eq(%w(openid offline_access profile))
           expect(body[:claims_supported]).to eq(%w(sub iss iat nbf exp name))
         end
       end
