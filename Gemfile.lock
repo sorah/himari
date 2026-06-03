@@ -1,7 +1,7 @@
 PATH
   remote: himari-aws
   specs:
-    himari-aws (0.2.0)
+    himari-aws (0.3.0)
       apigatewayv2_rack
       aws-sdk-dynamodb
       aws-sdk-secretsmanager
@@ -10,7 +10,7 @@ PATH
 PATH
   remote: himari
   specs:
-    himari (0.5.0)
+    himari (0.6.0)
       addressable
       concurrent-ruby
       httpx
@@ -23,7 +23,7 @@ PATH
 PATH
   remote: omniauth-himari
   specs:
-    omniauth-himari (0.2.0)
+    omniauth-himari (0.3.0)
       faraday
       jwt
       oauth2
