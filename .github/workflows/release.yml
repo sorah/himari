@@ -46,9 +46,35 @@ jobs:
           ruby-version: '4.0'
       - run: bundle install --jobs 4
       - name: Create GitHub release
-        run: gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes --draft
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.gem.outputs.version }}
+          GEM_DIR: ${{ steps.gem.outputs.name }}
+        with:
+          script: |
+            const fs = require('fs');
+            const tag = process.env.GITHUB_REF_NAME;
+            const { VERSION, GEM_DIR } = process.env;
+            const { owner, repo } = context.repo;
+
+            // Generate notes first so GitHub computes the "Full Changelog" compare link.
+            const { data: release } = await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, draft: true, generate_notes: true,
+            });
+
+            // Extract this version's section from the gem CHANGELOG.md.
+            const lines = fs.readFileSync(`${GEM_DIR}/CHANGELOG.md`, 'utf8').split('\n');
+            const start = lines.findIndex((l) => l.startsWith(`## [${VERSION}]`));
+            if (start === -1) throw new Error(`no CHANGELOG.md section for ${VERSION}`);
+            const rest = lines.slice(start + 1);
+            const end = rest.findIndex((l) => l.startsWith('## ['));
+            const section = (end === -1 ? rest : rest.slice(0, end)).join('\n').trim();
+
+            // Keep the auto-generated "Full Changelog" link.
+            const fullChangelog = (release.body || '').split('\n').find((l) => l.includes('Full Changelog'));
+            const body = fullChangelog ? `${section}\n\n${fullChangelog}` : section;
+
+            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, body });
       - name: Publish to RubyGems
         uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
         with:
