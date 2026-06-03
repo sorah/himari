@@ -1,0 +1,55 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'himari/v*'
+      - 'himari-aws/v*'
+      - 'omniauth-himari/v*'
+
+permissions: {}
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_test.yml
+
+  release:
+    needs: [test]
+    runs-on: ubuntu-latest
+    # The gem is selected by the pushed tag. Tags are prefixed per gem and
+    # formatted as "<gem>/v<version>" (Bundler::GemHelper.tag_prefix), e.g.
+    # himari/v0.5.0, so the gem name doubles as its subdirectory.
+    permissions:
+      contents: write
+      id-token: write
+    environment:
+      name: rubygems-org
+      url: ${{ steps.gem.outputs.url }}
+    steps:
+      - name: Identify gem from tag
+        id: gem
+        run: |
+          gem_name="${GITHUB_REF_NAME%/v*}"
+          version="${GITHUB_REF_NAME##*/v}"
+          {
+            echo "name=${gem_name}"
+            echo "version=${version}"
+            echo "url=https://rubygems.org/gems/${gem_name}/versions/${version}"
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          ruby-version: '4.0'
+      - run: bundle install --jobs 4
+      - name: Create GitHub release
+        run: gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes --draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to RubyGems
+        uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
+        with:
+          working-directory: ${{ steps.gem.outputs.name }}
