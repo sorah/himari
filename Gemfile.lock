@@ -10,7 +10,7 @@ PATH
 PATH
   remote: himari
   specs:
-    himari (0.6.0)
+    himari (0.7.0)
       addressable
       concurrent-ruby
       httpx
@@ -23,7 +23,7 @@ PATH
 PATH
   remote: omniauth-himari
   specs:
-    omniauth-himari (0.3.0)
+    omniauth-himari (0.4.0)
       faraday
       jwt
       oauth2
