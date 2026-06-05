@@ -35,6 +35,7 @@ RSpec.describe Himari::Services::OidcProviderMetadataEndpoint do
         body = JSON.parse(last_response.body, symbolize_names: true)
 
         expect(body[:id_token_signing_alg_values_supported]).to eq(%w(RS256))
+        expect(body[:authorization_response_iss_parameter_supported]).to eq(true)
       end
 
       context "without dynamic client registration" do

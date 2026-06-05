@@ -22,6 +22,7 @@ use OmniAuth::Builder do
 
     # verify_options: { ... } # JWT.decode verify options override
     # verify_at_hash: true, # Verify at_hash returned in ID token
+    # verify_iss: true, # Verify RFC 9207 iss parameter on the authorization response
 
     # use_userinfo: false # force use of userinfo endpoint for raw_info
     # jwks_url: '...' # JWKs url to override (default=/public/jwks)

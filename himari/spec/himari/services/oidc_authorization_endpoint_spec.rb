@@ -21,8 +21,9 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
   let(:client) { Himari::ClientRegistration.new(id: 'clientid', redirect_uris:, confidential: false, require_pkce:, skip_consent:) }
   let(:storage) { Himari::Storages::Memory.new }
   let(:logger) { Rack::NullLogger.new(nil) }
+  let(:issuer) { 'https://test.invalid' }
 
-  let(:app) { described_class.new(authz: authz, client: client, storage: storage, consent: consent, logger: logger) }
+  let(:app) { described_class.new(authz: authz, client: client, storage: storage, issuer: issuer, consent: consent, logger: logger) }
 
   context "with invalid clientid combination" do
     it "returns 400" do
@@ -37,6 +38,7 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       expect(last_response.status).to eq(302)
       fragment = Addressable::URI.parse(last_response.headers['location']).fragment
       expect(fragment).to include('error=unsupported_response_type')
+      expect(fragment).to include('iss=https%3A%2F%2Ftest.invalid')
     end
   end
 
@@ -73,6 +75,7 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
       query = Addressable::URI.parse(last_response.headers['location']).query_values
       expect(query['state']).to eq('x')
       expect(query['code']).to be_a(String)
+      expect(query['iss']).to eq('https://test.invalid')
 
       authz = storage.find_authorization(query['code'])
       expect(authz).to be_a(Himari::AuthorizationCode)
@@ -229,6 +232,7 @@ RSpec.describe Himari::Services::OidcAuthorizationEndpoint do
         query = Addressable::URI.parse(last_response.headers['location']).query_values
         expect(query['error']).to eq('access_denied')
         expect(query['state']).to eq('x')
+        expect(query['iss']).to eq('https://test.invalid')
       end
     end
 

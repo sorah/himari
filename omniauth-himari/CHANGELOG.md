@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Enhancements
+
+- Validate the Authorization Server Issuer Identification `iss` parameter (RFC 9207) on the authorization response, defending against mix-up attacks; controlled by the new `verify_iss` option (default enabled)
+
 ## [0.3.0] - 2026-06-03
 
 ### Enhancements

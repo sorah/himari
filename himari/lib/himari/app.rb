@@ -200,6 +200,7 @@ module Himari
           authz: authz,
           client: client,
           storage: config.storage,
+          issuer: config.issuer,
           consent: consent,
           logger: logger,
         ).call(env)
