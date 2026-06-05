@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Enhancements
+
+- Authorization Server Issuer Identification (RFC 9207): the authorization endpoint now returns the `iss` parameter in all authorization responses (success and redirected errors), and discovery metadata advertises `authorization_response_iss_parameter_supported`
+
 ## [0.6.0] - 2026-06-03
 
 ### Enhancements

@@ -24,6 +24,7 @@ module OmniAuth
 
       option :verify_options, {}
       option :verify_at_hash, true
+      option :verify_iss, true
 
       option :use_userinfo, false
 
@@ -48,6 +49,19 @@ module OmniAuth
 
         raise ConfigurationError, "client_id and client_secret is required" unless options.client_id && options.client_secret
         raise ConfigurationError, "site is required" unless options.client_options.site
+
+        super
+      end
+
+      # RFC 9207: validate the authorization server's issuer identifier returned alongside the
+      # authorization response before exchanging the code, defending against mix-up attacks.
+      def callback_phase
+        if options.verify_iss
+          iss = request.params['iss']
+          if iss && iss != options.site
+            return fail!(:issuer_mismatch, VerificationError.new("iss mismatch: #{iss.inspect} != #{options.site.inspect}"))
+          end
+        end
 
         super
       end

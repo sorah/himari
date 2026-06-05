@@ -60,6 +60,7 @@ module Himari
             subject_types_supported: ['public'],
             id_token_signing_alg_values_supported: signing_keys.map(&:alg).uniq.sort,
             claims_supported: (DEFAULT_CLAIMS_SUPPORTED + @claims_supported).uniq,
+            authorization_response_iss_parameter_supported: true, # RFC 9207
           }.compact
         end
 

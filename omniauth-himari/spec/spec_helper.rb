@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "omniauth/himari"
+require "omniauth-himari"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

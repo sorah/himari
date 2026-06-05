@@ -4,6 +4,8 @@ require 'rack/oauth2'
 require 'digest/sha2'
 require 'openid_connect'
 
+require 'himari/rack_oauth2_ext'
+
 module Himari
   module Services
     class OidcAuthorizationEndpoint
@@ -26,12 +28,14 @@ module Himari
       # @param authz [Himari::AuthorizationCode] pending (unpersisted) authz data
       # @param client [Himari::ClientRegistration]
       # @param storage [Himari::Storages::Base]
+      # @param issuer [String] issuer identifier, returned to the client as the RFC 9207 `iss` parameter
       # @param consent [:approve, :deny, nil] the user's consent decision (nil = not yet asked)
       # @param logger [Logger]
-      def initialize(authz:, client:, storage:, consent: nil, logger: nil)
+      def initialize(authz:, client:, storage:, issuer:, consent: nil, logger: nil)
         @authz = authz
         @client = client
         @storage = storage
+        @issuer = issuer
         @consent = consent
         @logger = logger
       end
@@ -47,6 +51,11 @@ module Himari
 
       def app(env)
         Rack::OAuth2::Server::Authorize.new do |req, res|
+          # RFC 9207: hand the issuer to rack-oauth2 so both the grant response and any error it
+          # redirects back to the client carry the `iss` parameter (see Himari::RackOAuth2Ext).
+          req.iss = @issuer
+          res.iss = @issuer
+
           # sanity check
           unless @client.id == req.client_id
             @logger&.warn(Himari::LogLine.new('OidcAuthorizationEndpoint: @client.id != req.client_id', req: env['himari.request_as_log'], known_client: @client.id, given_client: req.client_id))
